@@ -140,33 +140,43 @@
         }
     };
 
-    function applyContext() {
-        const bu = document.getElementById('f-bu').value;
-        const data = allRelations[bu];
-        const fill = (id, items, cls) => {
-            document.getElementById(id).innerHTML = items.map(v => `<label class="item-row"><input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"> ${v}</label>`).join('');
-        };
-        fill('f-tier-list', data.tiers, 'tier');
-        fill('f-site-list', data.sites, 'site');
-        fill('f-type-list', data.types, 'type');
-        update();
-    }
+    /* Inside index.html script */
 
-    function update() {
-        document.getElementById('loader').style.display = 'flex';
-        const key = document.getElementById('m-select').value;
-        const getChecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:checked`)).map(c => c.value);
-        const getUnchecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:not(:checked)`)).map(c => c.value);
+function applyContext() {
+    const bu = document.getElementById('f-bu').value;
+    const data = allRelations[bu];
+    
+    const fill = (id, items, cls) => {
+        document.getElementById(id).innerHTML = items.map(v => `
+            <label class="item-row">
+                <input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"> ${v}
+            </label>
+        `).join('');
+    };
+    
+    fill('f-tier-list', data.tiers, 'tier');
+    fill('f-site-list', data.sites, 'site');
+    fill('f-type-list', data.types, 'type');
+    fill('f-offer-list', data.offers, 'off'); // RESTORED OFFERS FILTER
+    update();
+}
 
-        worker.postMessage({ 
-            type: 'PROCESS', 
-            exclOff: [], 
-            exclTyp: getUnchecked('type'), 
-            metricKey: key,
-            filters: { bu: document.getElementById('f-bu').value, sites: getChecked('site'), tiers: getChecked('tier') },
-            pIdx: parseInt(document.getElementById('period-select').value) || 1
-        });
-    }
+function update() {
+    document.getElementById('loader').style.display = 'flex';
+    const key = document.getElementById('m-select').value;
+    
+    const getChecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:checked`)).map(c => c.value);
+    const getUnchecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:not(:checked)`)).map(c => c.value);
+
+    worker.postMessage({ 
+        type: 'PROCESS', 
+        exclOff: getUnchecked('off'), // SEND EXCLUDED OFFERS
+        exclTyp: getUnchecked('type'), 
+        metricKey: key,
+        filters: { bu: document.getElementById('f-bu').value, sites: getChecked('site'), tiers: getChecked('tier') },
+        pIdx: parseInt(document.getElementById('period-select').value) || 1
+    });
+}
 
     function renderChart(base, sim, key) {
         const svg = document.getElementById('chart'), w = svg.clientWidth, h = 380, m = 60;

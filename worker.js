@@ -1,4 +1,4 @@
-/** worker.js - Enterprise Analytics Engine **/
+/** worker.js - Resilient Math & Exclusion Logic **/
 
 const MAX_ROWS = 800000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
@@ -22,16 +22,19 @@ async function streamCSV(url) {
         for (let line of lines) {
             const c = line.split(',');
             if (!line.trim() || isH) { isH = false; continue; }
+            if (c.length < 9) continue; // Skip malformed rows
             
             const getIdx = (v, m) => { let i = m.indexOf(v); if (i === -1) { m.push(v); return m.length - 1; } return i; };
             
-            mthCol[rowCount] = getIdx(c[0], dateMap);
-            buCol[rowCount] = getIdx(c[1], buMap);
-            tierCol[rowCount] = getIdx(c[2], tierMap);
-            siteCol[rowCount] = getIdx(c[3], siteMap);
-            handledCol[rowCount] = Number(c[4]);
-            presData[rowCount] = c[5]; extData[rowCount] = c[6]; accData[rowCount] = c[7];
-            countCol[rowCount] = Number(c[8]);
+            mthCol[rowCount] = getIdx(c[0].trim(), dateMap);
+            buCol[rowCount] = getIdx(c[1].trim(), buMap);
+            tierCol[rowCount] = getIdx(c[2].trim(), tierMap);
+            siteCol[rowCount] = getIdx(c[3].trim(), siteMap);
+            handledCol[rowCount] = parseInt(c[4]) || 0;
+            presData[rowCount] = c[5] || ""; 
+            extData[rowCount] = c[6] || ""; 
+            accData[rowCount] = c[7] || ""; 
+            countCol[rowCount] = parseInt(c[8]) || 0;
             rowCount++;
 
             if (rowCount % 100000 === 0) self.postMessage({ type: 'PROGRESS', loaded: rowCount });
@@ -39,7 +42,7 @@ async function streamCSV(url) {
     }
 
     const mNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const dDates = dateMap.map(v => `${mNames[parseInt(v.substring(4,6))]}-${v.substring(2,4)}`);
+    const dDates = dateMap.map(v => `${mNames[parseInt(v.substring(4,6))] || '??'}-${v.substring(2,4)}`);
     
     let relations = {};
     for (let i = 0; i < rowCount; i++) {
@@ -47,18 +50,24 @@ async function streamCSV(url) {
         if (!relations[bu]) relations[bu] = { tiers: new Set(), sites: new Set(), types: new Set(), offers: new Set() };
         relations[bu].tiers.add(tierMap[tierCol[i]]);
         relations[bu].sites.add(siteMap[siteCol[i]]);
-        presData[i].split('|').forEach(o => { 
-            const clean = o.trim(); if(!clean) return;
-            relations[bu].offers.add(clean);
-            relations[bu].types.add(clean.split('-')[0]); 
-        });
+        
+        // Populate Offers and Types from the Presented Column
+        if (presData[i]) {
+            presData[i].split('|').forEach(o => { 
+                const clean = o.trim(); 
+                if(clean && clean !== "") {
+                    relations[bu].offers.add(clean);
+                    relations[bu].types.add(clean.split('-')[0]); 
+                }
+            });
+        }
     }
     for (let k in relations) for (let s in relations[k]) relations[k][s] = Array.from(relations[k][s]).sort();
     
     self.postMessage({ type: 'READY', displayDates: dDates, bus: buMap, relations });
 }
 
-function calculate(exclOff, exclTyp, f, metricKey) {
+function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
     const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, typeStatsNum: {}, comboStatsNum: {} }));
     const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x)));
     const sIdx = new Set(f.sites.map(x => siteMap.indexOf(x)));
@@ -75,17 +84,24 @@ function calculate(exclOff, exclTyp, f, metricKey) {
             seen.add(segKey);
         }
 
-        const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
-        const act = rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0]));
+        const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o !== "");
+        
+        // APPLY EXCLUSIONS ONLY IF THIS IS THE SIMULATION RUN (The blue line)
+        const act = isSimulation 
+            ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0]))
+            : rowOff;
         
         if (act.length > 0) {
             const v = countCol[i]; 
             r.elig += v;
+            
             const extActive = extData[i].split('|').some(o => act.includes(o.trim()));
             const accActive = accData[i].split('|').some(o => act.includes(o.trim()));
+            
             if (extActive) r.ext += v;
             if (accActive) r.acc += v;
 
+            // Success tracking for PoP (Driver Table always shows full organic impact)
             const isSuccess = (metricKey === 'eligRate') ? true : (metricKey === 'convRate') ? accActive : extActive;
             if (isSuccess) {
                 const ck = act.sort().join(' | ');
@@ -103,8 +119,8 @@ function calculate(exclOff, exclTyp, f, metricKey) {
 self.onmessage = (e) => {
     if (e.data.type === 'LOAD') streamCSV(e.data.url);
     if (e.data.type === 'PROCESS') {
-        const base = calculate([], [], e.data.filters, e.data.metricKey);
-        const impact = calculate(e.data.exclOff, e.data.exclTyp, e.data.filters, e.data.metricKey);
+        const base = calculate([], [], e.data.filters, e.data.metricKey, false);
+        const impact = calculate(e.data.exclOff, e.data.exclTyp, e.data.filters, e.data.metricKey, true);
         self.postMessage({ type: 'DONE', base, impact, periodIdx: e.data.pIdx });
     }
 };
