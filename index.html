@@ -2,29 +2,53 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | Enterprise Dashboard</title>
+    <title>VG Optimizer | Enterprise Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
-        * { box-sizing: border-box; }
         
-        /* THE FIX: Ensure body is a flex container and height is 100vh */
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; width: 100vw; height: 100vh; overflow: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        /* Sidebar: Fixed width, dark background */
-        .sidebar { width: 320px; min-width: 320px; background: var(--primary); color: white; padding: 25px 20px; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; height: 100%; }
-        
-        /* Main: Takes up remaining space, light background */
-        .main { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 24px; height: 100%; }
-        
-        .sidebar h1 { font-size: 18px; margin: 0; font-weight: 700; color: white; }
-        .filter-label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
-        .multi-box { background: #1e293b; border-radius: 8px; height: 120px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
-        .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; cursor: pointer; color: #cbd5e1; }
-        select, input { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; width: 100%; font-size: 12px; }
-        
+        /* GRID SYSTEM: Explicitly defines Sidebar (320px) and Main (Remaining) */
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            display: grid; 
+            grid-template-columns: 320px 1fr; 
+            grid-template-rows: 100vh;
+            overflow: hidden; 
+        }
+
+        /* SIDEBAR */
+        .sidebar { 
+            background: var(--primary); 
+            color: white; 
+            padding: 25px; 
+            overflow-y: auto; 
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* MAIN AREA */
+        .main-container { 
+            padding: 30px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 24px; 
+        }
+
+        /* COMPONENTS */
         .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .sidebar h1 { font-size: 18px; font-weight: 700; margin-bottom: 5px; }
+        .filter-label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
+        .multi-box { background: #1e293b; border-radius: 8px; height: 110px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
+        .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; cursor: pointer; color: #cbd5e1; }
+        select, input { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; width: 100%; font-size: 12px; outline: none; }
         
+        /* CHART & TABLE */
         svg { width: 100%; height: 350px; overflow: visible; }
         .line-base { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 6; }
         .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
@@ -33,7 +57,9 @@
         th { text-align: left; padding: 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--border); }
         td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
 
-        #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+        .driver-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+        #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .btn-sm { padding: 2px 6px; font-size: 9px; cursor: pointer; border: 1px solid #334155; border-radius: 4px; background: transparent; color: #94a3b8; }
@@ -43,54 +69,56 @@
 
 <div id="loader">
     <div class="spinner"></div>
-    <div id="load-text">Connecting to Data Stream...</div>
+    <div id="load-text">Initializing Dashboard...</div>
 </div>
 
-<div class="sidebar">
-    <h1>VG Optimizer</h1>
-    <p style="font-size: 10px; color: #64748b; margin: 0;">ENTERPRISE ANALYTICS</p>
+<aside class="sidebar">
+    <header>
+        <h1>VG Optimizer</h1>
+        <p style="font-size: 10px; color: #64748b; letter-spacing: 1px;">STRATEGY SIMULATOR</p>
+    </header>
 
-    <div>
-        <label class="filter-label">Metric View</label>
+    <section class="filter-group">
+        <label class="filter-label">Performance Metric</label>
         <select id="m-select" onchange="update()">
             <option value="eligRate">Eligibility %</option>
             <option value="offRate">Offer Rate %</option>
             <option value="accRate">Accept Rate %</option>
             <option value="convRate">Conversion %</option>
         </select>
-    </div>
+    </section>
 
-    <div>
+    <section class="filter-group">
         <label class="filter-label">Business Unit</label>
         <select id="f-bu" onchange="applyContext()"></select>
-    </div>
+    </section>
 
-    <div>
+    <section class="filter-group">
         <div style="display:flex; justify-content:space-between;"><label class="filter-label">Tiers</label><button class="btn-sm" onclick="toggleAll('tier', true)">All</button></div>
         <div id="f-tier-list" class="multi-box"></div>
-    </div>
+    </section>
 
-    <div>
+    <section class="filter-group">
         <div style="display:flex; justify-content:space-between;"><label class="filter-label">Sites</label><button class="btn-sm" onclick="toggleAll('site', true)">All</button></div>
         <div id="f-site-list" class="multi-box"></div>
-    </div>
+    </section>
 
-    <div>
+    <section class="filter-group">
         <label class="filter-label">Exclude Types</label>
         <div id="f-type-list" class="multi-box"></div>
-    </div>
+    </section>
 
-    <div>
+    <section class="filter-group">
         <label class="filter-label">Exclude Offers</label>
         <input type="text" id="off-search" placeholder="Search..." oninput="filterOffers()" style="margin-bottom:8px;">
         <div id="f-offer-list" class="multi-box" style="height: 140px;"></div>
-    </div>
-</div>
+    </section>
+</aside>
 
-<div class="main">
+<main class="main-container">
     <div class="card">
         <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <h2 style="margin:0; font-size:18px; font-weight:700;">Performance Simulation</h2>
+            <h2 style="margin:0; font-size:18px; font-weight:700;">Trend Analysis</h2>
             <div style="font-size:12px; font-weight:700;">
                 <span style="color:#cbd5e1">--- Baseline</span> &nbsp; 
                 <span style="color:var(--accent)">━ Simulated</span>
@@ -99,11 +127,11 @@
         <svg id="chart"></svg>
     </div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+    <div class="driver-grid">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <h3 style="margin:0; font-size:15px;">Top 5 Drivers</h3>
+                    <h3 style="margin:0; font-size:15px;">PoP Contribution</h3>
                     <select id="pop-level" style="width:auto; background:white; color:var(--text); border:1px solid var(--border);" onchange="update()">
                         <option value="typeStatsNum">By Offer Type</option>
                         <option value="comboStatsNum">By Offer Combo</option>
@@ -112,7 +140,7 @@
                 <select id="period-select" style="width:auto; background:white; color:var(--text); border:1px solid var(--border);" onchange="update()"></select>
             </div>
             <table id="pop-table">
-                <thead><tr><th>Dimension</th><th>Impact</th><th>Contribution</th></tr></thead>
+                <thead><tr><th>Dimension</th><th>Impact Bar</th><th>Contribution</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -120,10 +148,10 @@
         <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
             <label class="filter-label" style="color:var(--muted)">Simulation Delta</label>
             <div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div>
-            <div style="font-size:11px; color:var(--muted); margin-top:5px;">Period-over-Period Shift</div>
+            <p id="delta-txt" style="font-size:11px; color:var(--muted); margin-top:5px;">Period-over-Period</p>
         </div>
     </div>
-</div>
+</main>
 
 <script>
     const worker = new Worker('worker.js');
@@ -132,7 +160,7 @@
     worker.onmessage = (e) => {
         const { type, loaded, displayDates: dDates, bus, relations, base, impact, periodIdx } = e.data;
         if (type === 'PROGRESS') {
-            document.getElementById('load-text').innerHTML = `Syncing BigQuery Stream...<br><strong>${Math.round((loaded/600000)*100)}%</strong>`;
+            document.getElementById('load-text').innerHTML = `Streaming rows: <strong>${loaded.toLocaleString()}</strong>`;
         }
         if (type === 'READY') {
             displayDates = dDates; allRelations = relations;
@@ -208,9 +236,8 @@
         if(!curr || !prev) return;
         const getDen = (n) => (key === 'eligRate' ? n.h : (key === 'convRate' ? n.ext : n.elig)) || 1;
         const delta = curr[key] - prev[key];
-        const el = document.getElementById('total-delta');
-        el.innerText = (delta > 0 ? '+' : '') + delta.toFixed(2) + '%';
-        el.style.color = delta >= 0 ? 'var(--success)' : 'var(--danger)';
+        document.getElementById('total-delta').innerText = (delta > 0 ? '+' : '') + delta.toFixed(2) + '%';
+        document.getElementById('total-delta').style.color = delta >= 0 ? 'var(--success)' : 'var(--danger)';
         const statKey = document.getElementById('pop-level').value;
         const all = new Set([...Object.keys(curr[statKey]), ...Object.keys(prev[statKey])]);
         const rows = Array.from(all).map(n => {
