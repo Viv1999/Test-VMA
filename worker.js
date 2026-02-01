@@ -1,5 +1,5 @@
 /** worker.js **/
-const MAX_ROWS = 800000;
+const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
 const handledCol = new Uint32Array(MAX_ROWS), countCol = new Uint32Array(MAX_ROWS);
@@ -7,58 +7,49 @@ const presData = new Array(MAX_ROWS), extData = new Array(MAX_ROWS), accData = n
 
 let dateMap = [], buMap = [], tierMap = [], siteMap = [], rowCount = 0;
 
-function generateFixedDummyData() {
-    const bus = ["Mobile", "Broadband", "TV"];
-    const tiers = ["Gold", "Silver", "Bronze"];
-    const sites = ["Mumbai", "Delhi", "Bangalore"];
-    const months = ["202501", "202502", "202503", "202504", "202505", "202506"];
-    const offerTypes = ["Discount", "Cashback", "Loyalty", "Bundle"];
-    
-    // Step 1: Create a master volume map for segments
-    // This ensures every row in 'Jan-Mobile-Gold-Mumbai' sees the same denominator
-    const segmentVolumes = {};
+async function streamCSV(url) {
+    const resp = await fetch(url);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let partial = '', isH = true;
 
-    for (let i = 0; i < 100000; i++) {
-        const m = months[Math.floor(Math.random() * months.length)];
-        const b = bus[Math.floor(Math.random() * bus.length)];
-        const t = tiers[Math.floor(Math.random() * tiers.length)];
-        const s = sites[Math.floor(Math.random() * sites.length)];
-        const segKey = `${m}-${b}-${t}-${s}`;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const lines = (partial + decoder.decode(value)).split('\n');
+        partial = lines.pop();
 
-        if (!segmentVolumes[segKey]) {
-            segmentVolumes[segKey] = 500 + Math.floor(Math.random() * 1000);
+        for (let line of lines) {
+            const c = line.split(',');
+            if (!line.trim() || isH) { isH = false; continue; }
+            if (c.length < 9) continue;
+            
+            const getIdx = (v, m) => { 
+                let clean = v.trim(); 
+                let i = m.indexOf(clean); 
+                if (i === -1) { m.push(clean); return m.length - 1; } 
+                return i; 
+            };
+            
+            mthCol[rowCount] = getIdx(c[0], dateMap);
+            buCol[rowCount] = getIdx(c[1], buMap);
+            tierCol[rowCount] = getIdx(c[2], tierMap);
+            siteCol[rowCount] = getIdx(c[3], siteMap);
+            handledCol[rowCount] = parseInt(c[4]) || 0;
+            presData[rowCount] = c[5] || ""; 
+            extData[rowCount] = c[6] || ""; 
+            accData[rowCount] = c[7] || ""; 
+            countCol[rowCount] = parseInt(c[8]) || 0;
+            rowCount++;
+            
+            if (rowCount % 100000 === 0) self.postMessage({ type: 'PROGRESS', loaded: rowCount });
         }
-
-        const getIdx = (v, map) => { 
-            let idx = map.indexOf(v); 
-            if (idx === -1) { map.push(v); return map.length - 1; } 
-            return idx; 
-        };
-
-        mthCol[rowCount] = getIdx(m, dateMap);
-        buCol[rowCount] = getIdx(b, buMap);
-        tierCol[rowCount] = getIdx(t, tierMap);
-        siteCol[rowCount] = getIdx(s, siteMap);
-        
-        // Use the consistent volume for this segment
-        handledCol[rowCount] = segmentVolumes[segKey];
-
-        // Logic: Total counts in a segment cannot exceed handled volume
-        const type1 = offerTypes[Math.floor(Math.random() * offerTypes.length)];
-        const type2 = offerTypes[Math.floor(Math.random() * offerTypes.length)];
-        
-        presData[rowCount] = `${type1}-Promo | ${type2}-Special`;
-        extData[rowCount] = Math.random() > 0.4 ? `${type1}-Promo` : "";
-        accData[rowCount] = Math.random() > 0.7 ? `${type1}-Promo` : "";
-        
-        countCol[rowCount] = 10 + Math.floor(Math.random() * 40);
-        rowCount++;
-
-        if (rowCount % 25000 === 0) self.postMessage({ type: 'PROGRESS', loaded: rowCount });
     }
 
+    // Sort dates properly (assuming YYYYMM format)
+    dateMap.sort();
     const mNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const dDates = dateMap.sort().map(v => `${mNames[parseInt(v.substring(4,6))]} ${v.substring(2,4)}`);
+    const dDates = dateMap.map(v => `${mNames[parseInt(v.substring(4,6))]} ${v.substring(2,4)}`);
     
     let relations = {};
     for (let i = 0; i < rowCount; i++) {
@@ -89,12 +80,9 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
         
-        // UNIQUE SEGMENT DEDUPLICATION (The key to correct eligibility)
+        // Segment-Aware Deduplication: Ensures 'Handled' is only summed once per bucket
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        if (!seen.has(segKey)) { 
-            r.h += handledCol[i]; 
-            seen.add(segKey); 
-        }
+        if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
 
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
         const act = isSimulation ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0])) : rowOff;
@@ -122,7 +110,7 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
 }
 
 self.onmessage = (e) => {
-    if (e.data.type === 'LOAD') generateFixedDummyData();
+    if (e.data.type === 'LOAD') streamCSV(e.data.url);
     if (e.data.type === 'PROCESS') {
         const base = calculate([], [], e.data.filters, e.data.metricKey, false);
         const impact = calculate(e.data.exclOff, e.data.exclTyp, e.data.filters, e.data.metricKey, true);
