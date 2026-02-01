@@ -41,8 +41,6 @@ async function streamCSV(url) {
             accData[rowCount] = c[7] || ""; 
             countCol[rowCount] = parseInt(c[8]) || 0;
             rowCount++;
-            
-            if (rowCount % 100000 === 0) self.postMessage({ type: 'PROGRESS', loaded: rowCount });
         }
     }
 
@@ -79,7 +77,6 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
         
-        // UNIQUE SEGMENT DEDUPLICATION - The core of Eligibility accuracy
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
         if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
 

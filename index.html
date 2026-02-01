@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | V1 Stable</title>
+    <title>VG Optimizer | Pure V1 Stable</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
@@ -10,7 +10,6 @@
         
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: grid; grid-template-columns: 320px 1fr; grid-template-rows: 100vh; overflow: hidden; }
 
-        /* Sidebar - Strict Left Align */
         .sidebar { background: var(--primary); color: white; padding: 25px; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: flex-start; gap: 20px; }
         .sidebar h1 { font-size: 18px; font-weight: 700; color: white; margin-bottom: 5px; }
         .filter-group { width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
@@ -20,7 +19,6 @@
         .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; cursor: pointer; color: #cbd5e1; justify-content: flex-start; width: 100%; }
         select, input { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px; border-radius: 4px; width: 100%; font-size: 12px; outline: none; text-align: left; }
 
-        /* Main Container */
         .main-container { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
         .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         
@@ -41,10 +39,10 @@
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Initializing Dashboard...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Restoring Pure Version 1...</div></div>
 
 <aside class="sidebar">
-    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">VERSION 1.0 STABLE</p></header>
+    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">STABLE V1.0</p></header>
     <div class="filter-group"><label class="filter-label">Metric View</label><select id="m-select" onchange="update()"><option value="eligRate">Eligibility %</option><option value="offRate">Offer Rate %</option><option value="accRate">Accept Rate %</option><option value="convRate">Conversion %</option></select></div>
     <div class="filter-group"><label class="filter-label">Business Unit</label><select id="f-bu" onchange="applyContext()"></select></div>
     <div class="filter-group"><div style="display:flex; justify-content:space-between; width:100%"><label class="filter-label">Tiers</label><button class="btn-sm" onclick="toggleAll('tier', true)">All</button></div><div id="f-tier-list" class="multi-box"></div></div>
@@ -55,21 +53,12 @@
 
 <main class="main-container">
     <div class="card">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <h2 style="margin:0; font-size:18px; font-weight:700;">Performance Trend</h2>
-            <div style="font-size:12px; font-weight:700;"><span style="color:#cbd5e1">--- Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div>
-        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h2 style="margin:0; font-size:18px; font-weight:700;">Performance Trend</h2><div style="font-size:12px; font-weight:700;"><span style="color:#cbd5e1">--- Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div></div>
         <svg id="chart"></svg>
     </div>
     <div class="driver-grid">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <h3 style="margin:0; font-size:15px;">PoP Attribution</h3>
-                    <select id="pop-level" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"><option value="typeStatsNum">By Type</option><option value="comboStatsNum">By Combo</option></select>
-                </div>
-                <select id="period-select" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"></select>
-            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"><div style="display:flex; gap:10px; align-items:center;"><h3 style="margin:0; font-size:15px;">PoP Attribution</h3><select id="pop-level" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"><option value="typeStatsNum">By Type</option><option value="comboStatsNum">By Combo</option></select></div><select id="period-select" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"></select></div>
             <table id="pop-table"><thead><tr><th>Dimension</th><th>Impact</th><th>Contribution</th></tr></thead><tbody></tbody></table>
         </div>
         <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;"><label class="filter-label" style="color:var(--muted)">Simulation Shift</label><div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div></div>
