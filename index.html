@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | v2.1</title>
+    <title>VG Optimizer | v2.2</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --baseline: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
@@ -13,26 +13,14 @@
         .sidebar h1 { font-size: 18px; font-weight: 700; color: white; }
         .filter-group { width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
         .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
-        
         .multi-box { background: #1e293b; border-radius: 6px; height: 115px; width: 100%; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
         .item-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 6px 0; font-size: 12px; color: #cbd5e1; width: 100%; cursor: pointer; }
         
-        /* DROPDOWN VISIBILITY FIX */
-        select, .search-input { 
-            background: #1e293b; 
-            color: #ffffff; 
-            border: 1px solid #334155; 
-            padding: 10px; 
-            border-radius: 4px; 
-            width: 100%; 
-            font-size: 12px; 
-            outline: none; 
-            text-align: left;
-            -webkit-appearance: none;
-        }
+        select, .search-input { background: #1e293b; color: #ffffff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; outline: none; }
         
-        /* Main Card Selectors Visibility */
-        .card select { background: #ffffff; color: var(--text); border: 1px solid var(--border); }
+        /* PoP View Dropdown Spacing */
+        .pop-controls { display: flex; align-items: center; gap: 20px; } /* Added 20px gap here */
+        .card select { background: #ffffff; color: var(--text); border: 1px solid var(--border); padding: 5px 10px; border-radius: 4px; }
 
         .main-container { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
         .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
@@ -50,29 +38,18 @@
         .driver-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
         .btn-sm { padding: 2px 6px; font-size: 9px; cursor: pointer; border: 1px solid #334155; border-radius: 4px; background: transparent; color: #94a3b8; }
         
-        #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
+        #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div id="loader">
-    <div class="spinner"></div>
-    <div id="load-text">Calculating v2.1 Metrics...</div>
-</div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Syncing v2.2 Metrics...</div></div>
 
 <aside class="sidebar">
-    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">VERSION 2.1</p></header>
-    <div class="filter-group">
-        <label class="filter-label">Metric View</label>
-        <select id="m-select" onchange="update()">
-            <option value="eligRate">Eligibility %</option>
-            <option value="offRate">Offer Rate %</option>
-            <option value="accRate">Accept Rate %</option>
-            <option value="convRate">Conversion %</option>
-        </select>
-    </div>
+    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">VERSION 2.2</p></header>
+    <div class="filter-group"><label class="filter-label">Metric View</label><select id="m-select" onchange="update()"><option value="eligRate">Eligibility %</option><option value="offRate">Offer Rate %</option><option value="accRate">Accept Rate %</option><option value="convRate">Conversion %</option></select></div>
     <div class="filter-group"><label class="filter-label">Business Unit</label><select id="f-bu" onchange="applyContext()"></select></div>
     <div class="filter-group"><div style="display:flex; justify-content:space-between; width:100%"><label class="filter-label">Tiers</label><button class="btn-sm" onclick="toggleAll('tier', true)">All</button></div><div id="f-tier-list" class="multi-box"></div></div>
     <div class="filter-group"><div style="display:flex; justify-content:space-between; width:100%"><label class="filter-label">Sites</label><button class="btn-sm" onclick="toggleAll('site', true)">All</button></div><div id="f-site-list" class="multi-box"></div></div>
@@ -92,12 +69,9 @@
     <div class="driver-grid">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div style="display:flex; gap:10px; align-items:center;">
+                <div class="pop-controls">
                     <h3 id="pop-title" style="margin:0; font-size:15px;">Top Drivers</h3>
-                    <select id="pop-level" onchange="update()">
-                        <option value="typeStatsNum">By Type</option>
-                        <option value="comboStatsNum">By Combo</option>
-                    </select>
+                    <select id="pop-level" onchange="update()"><option value="typeStatsNum">By Type</option><option value="comboStatsNum">By Combo</option></select>
                 </div>
                 <select id="period-select" onchange="update()"></select>
             </div>
@@ -125,7 +99,7 @@
         if (type === 'DONE') {
             document.getElementById('loader').style.display = 'none';
             renderChart(base, impact, document.getElementById('m-select').value);
-            renderTable(impact, periodIdx, document.getElementById('m-select').value);
+            renderTable(base, periodIdx, document.getElementById('m-select').value); // Table now uses organic 'base'
         }
     };
 
