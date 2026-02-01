@@ -1,4 +1,4 @@
-/** worker.js - Stable Baseline V2 **/
+/** worker.js - Stable Math v2.1 **/
 const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
 const handledCol = new Uint32Array(MAX_ROWS), countCol = new Uint32Array(MAX_ROWS);
@@ -44,13 +44,18 @@ async function streamCSV(url) {
 function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
     const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, typeStatsNum: {}, comboStatsNum: {} }));
     const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x))), sIdx = new Set(f.sites.map(x => siteMap.indexOf(x))), buIdx = buMap.indexOf(f.bu), seen = new Set();
+    
     for (let i = 0; i < rowCount; i++) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
+        
+        // --- STABLE ELIGIBILITY LOGIC ---
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
         if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
+
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
         const act = isSimulation ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0])) : rowOff;
+        
         if (act.length > 0) {
             const v = countCol[i]; r.elig += v;
             const extAct = extData[i].split('|').some(o => act.includes(o.trim())), accAct = accData[i].split('|').some(o => act.includes(o.trim()));
