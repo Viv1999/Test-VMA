@@ -1,4 +1,4 @@
-/** worker.js - Resilient Math & Exclusion Logic **/
+/** worker.js - High Performance Analytics Engine **/
 
 const MAX_ROWS = 800000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
@@ -22,14 +22,14 @@ async function streamCSV(url) {
         for (let line of lines) {
             const c = line.split(',');
             if (!line.trim() || isH) { isH = false; continue; }
-            if (c.length < 9) continue; // Skip malformed rows
+            if (c.length < 9) continue;
             
-            const getIdx = (v, m) => { let i = m.indexOf(v); if (i === -1) { m.push(v); return m.length - 1; } return i; };
+            const getIdx = (v, m) => { let i = m.indexOf(v.trim()); if (i === -1) { m.push(v.trim()); return m.length - 1; } return i; };
             
-            mthCol[rowCount] = getIdx(c[0].trim(), dateMap);
-            buCol[rowCount] = getIdx(c[1].trim(), buMap);
-            tierCol[rowCount] = getIdx(c[2].trim(), tierMap);
-            siteCol[rowCount] = getIdx(c[3].trim(), siteMap);
+            mthCol[rowCount] = getIdx(c[0], dateMap);
+            buCol[rowCount] = getIdx(c[1], buMap);
+            tierCol[rowCount] = getIdx(c[2], tierMap);
+            siteCol[rowCount] = getIdx(c[3], siteMap);
             handledCol[rowCount] = parseInt(c[4]) || 0;
             presData[rowCount] = c[5] || ""; 
             extData[rowCount] = c[6] || ""; 
@@ -50,12 +50,10 @@ async function streamCSV(url) {
         if (!relations[bu]) relations[bu] = { tiers: new Set(), sites: new Set(), types: new Set(), offers: new Set() };
         relations[bu].tiers.add(tierMap[tierCol[i]]);
         relations[bu].sites.add(siteMap[siteCol[i]]);
-        
-        // Populate Offers and Types from the Presented Column
         if (presData[i]) {
             presData[i].split('|').forEach(o => { 
                 const clean = o.trim(); 
-                if(clean && clean !== "") {
+                if(clean) {
                     relations[bu].offers.add(clean);
                     relations[bu].types.add(clean.split('-')[0]); 
                 }
@@ -84,9 +82,7 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
             seen.add(segKey);
         }
 
-        const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o !== "");
-        
-        // APPLY EXCLUSIONS ONLY IF THIS IS THE SIMULATION RUN (The blue line)
+        const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
         const act = isSimulation 
             ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0]))
             : rowOff;
@@ -94,14 +90,11 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
         if (act.length > 0) {
             const v = countCol[i]; 
             r.elig += v;
-            
             const extActive = extData[i].split('|').some(o => act.includes(o.trim()));
             const accActive = accData[i].split('|').some(o => act.includes(o.trim()));
-            
             if (extActive) r.ext += v;
             if (accActive) r.acc += v;
 
-            // Success tracking for PoP (Driver Table always shows full organic impact)
             const isSuccess = (metricKey === 'eligRate') ? true : (metricKey === 'convRate') ? accActive : extActive;
             if (isSuccess) {
                 const ck = act.sort().join(' | ');

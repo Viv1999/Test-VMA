@@ -2,34 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | Enterprise Edition</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>VG Analyzer | Professional Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --success: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
+        * { box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; height: 100vh; overflow: hidden; }
         
         /* Sidebar */
-        .sidebar { width: 320px; background: var(--primary); color: white; padding: 25px 20px; overflow-y: auto; border-right: 1px solid var(--border); }
-        .sidebar h1 { font-size: 18px; margin-bottom: 30px; }
+        .sidebar { width: 320px; min-width: 320px; background: var(--primary); color: white; padding: 25px 20px; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; }
+        .sidebar h1 { font-size: 18px; margin: 0; font-weight: 700; }
         .filter-label { display: block; font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
-        .filter-group { margin-bottom: 22px; }
-        .multi-box { background: #1e293b; border-radius: 8px; height: 120px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
+        .multi-box { background: #1e293b; border-radius: 8px; height: 110px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
         .item-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 11px; cursor: pointer; color: #cbd5e1; }
-        select { background: #1e293b; color: white; border: 1px solid #334155; padding: 10px; border-radius: 6px; width: 100%; cursor: pointer; }
-
-        /* Main Content */
-        .main { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 20px; }
-        .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; }
+        select, input { background: #1e293b; color: white; border: 1px solid #334155; padding: 8px; border-radius: 6px; width: 100%; font-size: 12px; }
         
-        svg { width: 100%; height: 380px; overflow: visible; }
-        .line-base { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 4; }
+        /* Main */
+        .main { flex: 1; overflow-y: auto; padding: 30px; display: flex; flex-direction: column; gap: 24px; }
+        .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        svg { width: 100%; height: 350px; overflow: visible; }
+        .line-base { fill: none; stroke: #cbd5e1; stroke-width: 2; stroke-dasharray: 6; }
         .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
-        .label-val { font-size: 11px; font-weight: 800; fill: var(--text); }
-        .label-diff { font-size: 10px; font-weight: 700; }
-
+        
         table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 10px; font-size: 10px; color: var(--muted); border-bottom: 2px solid var(--border); text-transform: uppercase; }
-        td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+        th { text-align: left; padding: 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--border); }
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
 
         #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; text-align: center; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
@@ -41,14 +39,14 @@
 
 <div id="loader">
     <div class="spinner"></div>
-    <div id="load-text">Streaming Data...</div>
+    <div id="load-text">Initializing Engine...</div>
 </div>
 
 <div class="sidebar">
     <h1>VG Optimizer</h1>
 
-    <div class="filter-group">
-        <label class="filter-label">Metric View</label>
+    <div>
+        <label class="filter-label">Performance Metric</label>
         <select id="m-select" onchange="update()">
             <option value="eligRate">Eligibility %</option>
             <option value="offRate">Offer Rate %</option>
@@ -57,53 +55,56 @@
         </select>
     </div>
 
-    <div class="filter-group">
+    <div>
         <label class="filter-label">Business Unit</label>
         <select id="f-bu" onchange="applyContext()"></select>
     </div>
 
-    <div class="filter-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <div style="display:flex; justify-content:space-between;">
             <label class="filter-label">Tiers</label>
             <button class="btn-sm" onclick="toggleAll('tier', true)">All</button>
         </div>
         <div id="f-tier-list" class="multi-box"></div>
     </div>
 
-    <div class="filter-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <div style="display:flex; justify-content:space-between;">
             <label class="filter-label">Sites</label>
             <button class="btn-sm" onclick="toggleAll('site', true)">All</button>
         </div>
         <div id="f-site-list" class="multi-box"></div>
     </div>
 
-<div class="filter-group">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <label class="filter-label">Exclude Types</label>
-        <button class="btn-sm" onclick="toggleAll('type', true)">None</button>
+    <div>
+        <label class="filter-label">Exclude Offer Types</label>
+        <div id="f-type-list" class="multi-box"></div>
     </div>
-    <div id="f-type-list" class="multi-box"></div>
-</div>
 
-<div class="filter-group">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
         <label class="filter-label">Exclude Specific Offers</label>
-        <button class="btn-sm" onclick="toggleAll('off', true)">None</button>
+        <input type="text" id="off-search" placeholder="Search offers..." oninput="filterOffers()" style="margin-bottom:8px;">
+        <div id="f-offer-list" class="multi-box" style="height: 150px;"></div>
     </div>
-    <div id="f-offer-list" class="multi-box"></div>
 </div>
-<div class="main">
-    <div class="card"><svg id="chart"></svg></div>
 
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+<div class="main">
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="margin:0; font-size:18px;">Simulation Trend</h2>
+            <div style="font-size:12px; font-weight:700;"><span style="color:#cbd5e1">--- Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div>
+        </div>
+        <svg id="chart"></svg>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px; align-items:center;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <h3 style="margin:0; font-size:14px;">Top 5 Drivers</h3>
-                    <select id="pop-level" style="width:auto; padding:4px 8px; background:white; color:var(--text); border:1px solid var(--border);" onchange="update()">
-                        <option value="typeStatsNum">Offer Type</option>
-                        <option value="comboStatsNum">Offer (Raw)</option>
+                    <h3 style="margin:0; font-size:15px;">Attribution Drivers</h3>
+                    <select id="pop-level" style="width:auto; background:white; color:var(--text); border:1px solid var(--border);" onchange="update()">
+                        <option value="typeStatsNum">By Type</option>
+                        <option value="comboStatsNum">By Offer Combo</option>
                     </select>
                 </div>
                 <select id="period-select" style="width:auto; background:white; color:var(--text); border:1px solid var(--border);" onchange="update()"></select>
@@ -114,10 +115,10 @@
             </table>
         </div>
 
-        <div class="card" style="text-align:center; display:flex; flex-direction:column; justify-content:center;">
-            <div style="font-size:10px; font-weight:800; color:var(--muted); margin-bottom:5px;">TOTAL SIMULATION IMPACT</div>
-            <div id="total-delta" style="font-size:42px; font-weight:800;">0.00%</div>
-            <div style="font-size:11px; color:var(--muted); margin-top:5px;">vs Previous Month</div>
+        <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+            <label class="filter-label" style="color:var(--muted)">Simulation Shift</label>
+            <div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div>
+            <div style="font-size:11px; color:var(--muted); margin-top:5px;">Period-over-Period Delta</div>
         </div>
     </div>
 </div>
@@ -129,7 +130,7 @@
     worker.onmessage = (e) => {
         const { type, loaded, displayDates: dDates, bus, relations, base, impact, periodIdx } = e.data;
         if (type === 'PROGRESS') {
-            document.getElementById('load-text').innerHTML = `Streaming: <strong>${Math.round((loaded/600000)*100)}%</strong>`;
+            document.getElementById('load-text').innerHTML = `Syncing BigQuery Stream...<br><strong>${Math.round((loaded/600000)*100)}%</strong>`;
         }
         if (type === 'READY') {
             displayDates = dDates; allRelations = relations;
@@ -146,108 +147,84 @@
         }
     };
 
-    /* Inside index.html script */
+    function applyContext() {
+        const bu = document.getElementById('f-bu').value;
+        const data = allRelations[bu];
+        if(!data) return;
 
-/* Refined index.html script logic */
+        const fill = (id, items, cls) => {
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = items.map(v => `<label class="item-row"><input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"> ${v}</label>`).join('');
+        };
+        fill('f-tier-list', data.tiers, 'tier');
+        fill('f-site-list', data.sites, 'site');
+        fill('f-type-list', data.types, 'type');
+        fill('f-offer-list', data.offers, 'off');
+        update();
+    }
 
-function applyContext() {
-    const bu = document.getElementById('f-bu').value;
-    const data = allRelations[bu];
-    
-    // Safety Wrapper
-    const fill = (id, items, cls) => {
-        const el = document.getElementById(id);
-        if (!el) {
-            console.warn(`Element ${id} not found in HTML. Skipping...`);
-            return;
-        }
-        el.innerHTML = items.map(v => `
-            <label class="item-row">
-                <input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"> ${v}
-            </label>
-        `).join('');
-    };
-    
-    // Fill all 4 dimensions
-    fill('f-tier-list', data.tiers, 'tier');
-    fill('f-site-list', data.sites, 'site');
-    fill('f-type-list', data.types, 'type');
-    fill('f-offer-list', data.offers, 'off'); 
-    
-    update();
-}
+    function filterOffers() {
+        const q = document.getElementById('off-search').value.toLowerCase();
+        document.querySelectorAll('#f-offer-list .item-row').forEach(row => {
+            row.style.display = row.innerText.toLowerCase().includes(q) ? 'flex' : 'none';
+        });
+    }
 
-function update() {
-    const loader = document.getElementById('loader');
-    if (loader) loader.style.display = 'flex';
+    function update() {
+        document.getElementById('loader').style.display = 'flex';
+        const key = document.getElementById('m-select').value;
+        const getCheck = (cls, checked) => Array.from(document.querySelectorAll(`.${cls}-cb${checked?':checked':':not(:checked)'}`)).map(c => c.value);
 
-    const key = document.getElementById('m-select').value;
-    
-    // Helper to safely get checkbox values
-    const getUnchecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:not(:checked)`)).map(c => c.value);
-    const getChecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:checked`)).map(c => c.value);
+        worker.postMessage({ 
+            type: 'PROCESS', 
+            exclOff: getCheck('off', false), 
+            exclTyp: getCheck('type', false), 
+            metricKey: key,
+            filters: { bu: document.getElementById('f-bu').value, sites: getCheck('site', true), tiers: getCheck('tier', true) },
+            pIdx: parseInt(document.getElementById('period-select').value) || 1
+        });
+    }
 
-    worker.postMessage({ 
-        type: 'PROCESS', 
-        exclOff: getUnchecked('off'), 
-        exclTyp: getUnchecked('type'), 
-        metricKey: key,
-        filters: { 
-            bu: document.getElementById('f-bu').value, 
-            sites: getChecked('site'), 
-            tiers: getChecked('tier') 
-        },
-        pIdx: parseInt(document.getElementById('period-select').value) || 1
-    });
-}
     function renderChart(base, sim, key) {
-        const svg = document.getElementById('chart'), w = svg.clientWidth, h = 380, m = 60;
+        const svg = document.getElementById('chart'), w = svg.clientWidth, h = 350, m = 60;
         const getX = (i) => m + (i * (w - m * 2) / (base.length - 1));
         const getY = (v) => (h - m) - (v * (h - m * 2) / 100);
 
-        let html = `<line x1="${m}" y1="${h-m}" x2="${w-m}" y2="${h-m}" stroke="var(--border)" />`;
+        let hmtl = `<line x1="${m}" y1="${h-m}" x2="${w-m}" y2="${h-m}" stroke="var(--border)" />`;
         const bPts = base.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
         const sPts = sim.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
         
-        html += `<polyline class="line-base" points="${bPts}" /><polyline class="line-sim" points="${sPts}" />`;
+        hmtl += `<polyline class="line-base" points="${bPts}" /><polyline class="line-sim" points="${sPts}" />`;
         sim.forEach((d, i) => {
-            const x = getX(i), y = getY(d[key]), bVal = base[i][key], diff = d[key] - bVal;
-            html += `<text x="${x}" y="${h-10}" text-anchor="middle" font-size="10" fill="var(--muted)">${displayDates[i]}</text>`;
-            html += `<text x="${x}" y="${y-12}" class="label-val" text-anchor="middle">${d[key].toFixed(1)}%</text>`;
-            if(Math.abs(diff) > 0.01) {
-                html += `<text x="${x}" y="${y+20}" class="label-diff" text-anchor="middle" fill="${diff < 0 ? 'var(--danger)':'var(--success)'}">${diff > 0 ? '+':''}${diff.toFixed(1)}%</text>`;
+            const x = getX(i), y = getY(d[key]), diff = d[key] - base[i][key];
+            hmtl += `<text x="${x}" y="${h-10}" text-anchor="middle" font-size="10" fill="var(--muted)">${displayDates[i]}</text>`;
+            hmtl += `<text x="${x}" y="${y-12}" font-size="11" font-weight="700" text-anchor="middle">${d[key].toFixed(1)}%</text>`;
+            if(Math.abs(diff) > 0.05) {
+                hmtl += `<text x="${x}" y="${y+22}" font-size="10" font-weight="700" text-anchor="middle" fill="${diff < 0 ? 'var(--danger)':'var(--success)'}">${diff > 0 ? '+':''}${diff.toFixed(1)}%</text>`;
             }
-            html += `<circle cx="${x}" cy="${y}" r="5" fill="var(--accent)" stroke="white" stroke-width="2" />`;
+            hmtl += `<circle cx="${x}" cy="${y}" r="5" fill="var(--accent)" stroke="white" stroke-width="2" />`;
         });
-        svg.innerHTML = html;
+        svg.innerHTML = hmtl;
     }
 
     function renderTable(sim, idx, key) {
         const tbody = document.querySelector('#pop-table tbody'), curr = sim[idx], prev = sim[idx-1];
-        const getDen = (n) => (key === 'eligRate' ? n.h : (key === 'convRate' ? n.ext : n.elig)) || 1;
-        const totalDelta = curr[key] - prev[key];
+        if(!curr || !prev) return;
         
-        const el = document.getElementById('total-delta');
-        el.innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
-        el.style.color = totalDelta >= 0 ? 'var(--success)' : 'var(--danger)';
+        const getDen = (n) => (key === 'eligRate' ? n.h : (key === 'convRate' ? n.ext : n.elig)) || 1;
+        const delta = curr[key] - prev[key];
+        document.getElementById('total-delta').innerText = (delta > 0 ? '+' : '') + delta.toFixed(2) + '%';
+        document.getElementById('total-delta').style.color = delta >= 0 ? 'var(--success)' : 'var(--danger)';
 
         const statKey = document.getElementById('pop-level').value;
         const all = new Set([...Object.keys(curr[statKey]), ...Object.keys(prev[statKey])]);
-        const drivers = Array.from(all).map(n => {
-            const contP = ((prev[statKey][n] || 0) / getDen(prev)) * 100;
-            const contC = ((curr[statKey][n] || 0) / getDen(curr)) * 100;
-            return { n: n || 'Organic', d: contC - contP };
+        const rows = Array.from(all).map(n => {
+            const cP = ((prev[statKey][n] || 0) / getDen(prev)) * 100;
+            const cC = ((curr[statKey][n] || 0) / getDen(curr)) * 100;
+            return { n: n || 'Organic', d: cC - cP };
         }).sort((a,b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 5);
         
-        tbody.innerHTML = drivers.map(r => `
-            <tr>
-                <td><strong>${r.n}</strong></td>
-                <td><div style="width:100px; height:6px; background:#f1f5f9; border-radius:3px; overflow:hidden;">
-                    <div style="width:${Math.min(100, Math.abs(r.d)*20)}%; height:100%; background:${r.d > 0 ? 'var(--success)':'var(--danger)'};"></div>
-                </div></td>
-                <td style="color:${r.d < 0 ? 'var(--danger)':'var(--success)'}; font-weight:bold">${r.d > 0 ? '+':''}${r.d.toFixed(2)}%</td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = rows.map(r => `<tr><td><strong>${r.n}</strong></td><td><div style="width:100px; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="width:${Math.min(100, Math.abs(r.d)*20)}%; height:100%; background:${r.d > 0 ? 'var(--success)':'var(--danger)'};"></div></div></td><td style="color:${r.d < 0 ? 'var(--danger)':'var(--success)'}; font-weight:bold">${r.d > 0 ? '+':''}${r.d.toFixed(2)}%</td></tr>`).join('');
     }
 
     function toggleAll(cls, check) {
