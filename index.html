@@ -78,15 +78,21 @@
         <div id="f-site-list" class="multi-box"></div>
     </div>
 
-    <div class="filter-group">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label class="filter-label">Exclusions (Types)</label>
-            <button class="btn-sm" onclick="toggleAll('type', true)">None</button>
-        </div>
-        <div id="f-type-list" class="multi-box"></div>
+<div class="filter-group">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label class="filter-label">Exclude Types</label>
+        <button class="btn-sm" onclick="toggleAll('type', true)">None</button>
     </div>
+    <div id="f-type-list" class="multi-box"></div>
 </div>
 
+<div class="filter-group">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <label class="filter-label">Exclude Specific Offers</label>
+        <button class="btn-sm" onclick="toggleAll('off', true)">None</button>
+    </div>
+    <div id="f-offer-list" class="multi-box"></div>
+</div>
 <div class="main">
     <div class="card"><svg id="chart"></svg></div>
 
@@ -142,42 +148,58 @@
 
     /* Inside index.html script */
 
+/* Refined index.html script logic */
+
 function applyContext() {
     const bu = document.getElementById('f-bu').value;
     const data = allRelations[bu];
     
+    // Safety Wrapper
     const fill = (id, items, cls) => {
-        document.getElementById(id).innerHTML = items.map(v => `
+        const el = document.getElementById(id);
+        if (!el) {
+            console.warn(`Element ${id} not found in HTML. Skipping...`);
+            return;
+        }
+        el.innerHTML = items.map(v => `
             <label class="item-row">
                 <input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"> ${v}
             </label>
         `).join('');
     };
     
+    // Fill all 4 dimensions
     fill('f-tier-list', data.tiers, 'tier');
     fill('f-site-list', data.sites, 'site');
     fill('f-type-list', data.types, 'type');
-    fill('f-offer-list', data.offers, 'off'); // RESTORED OFFERS FILTER
+    fill('f-offer-list', data.offers, 'off'); 
+    
     update();
 }
 
 function update() {
-    document.getElementById('loader').style.display = 'flex';
+    const loader = document.getElementById('loader');
+    if (loader) loader.style.display = 'flex';
+
     const key = document.getElementById('m-select').value;
     
-    const getChecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:checked`)).map(c => c.value);
+    // Helper to safely get checkbox values
     const getUnchecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:not(:checked)`)).map(c => c.value);
+    const getChecked = (cls) => Array.from(document.querySelectorAll(`.${cls}-cb:checked`)).map(c => c.value);
 
     worker.postMessage({ 
         type: 'PROCESS', 
-        exclOff: getUnchecked('off'), // SEND EXCLUDED OFFERS
+        exclOff: getUnchecked('off'), 
         exclTyp: getUnchecked('type'), 
         metricKey: key,
-        filters: { bu: document.getElementById('f-bu').value, sites: getChecked('site'), tiers: getChecked('tier') },
+        filters: { 
+            bu: document.getElementById('f-bu').value, 
+            sites: getChecked('site'), 
+            tiers: getChecked('tier') 
+        },
         pIdx: parseInt(document.getElementById('period-select').value) || 1
     });
 }
-
     function renderChart(base, sim, key) {
         const svg = document.getElementById('chart'), w = svg.clientWidth, h = 380, m = 60;
         const getX = (i) => m + (i * (w - m * 2) / (base.length - 1));
