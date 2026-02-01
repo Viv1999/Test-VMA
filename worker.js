@@ -1,8 +1,6 @@
-/** worker.js - High Performance Analytics Engine **/
-
+/** worker.js **/
 const MAX_ROWS = 800000;
-const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
-      tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
+const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
 const handledCol = new Uint32Array(MAX_ROWS), countCol = new Uint32Array(MAX_ROWS);
 const presData = new Array(MAX_ROWS), extData = new Array(MAX_ROWS), accData = new Array(MAX_ROWS);
 let dateMap = [], buMap = [], tierMap = [], siteMap = [], rowCount = 0;
@@ -23,9 +21,7 @@ async function streamCSV(url) {
             const c = line.split(',');
             if (!line.trim() || isH) { isH = false; continue; }
             if (c.length < 9) continue;
-            
             const getIdx = (v, m) => { let i = m.indexOf(v.trim()); if (i === -1) { m.push(v.trim()); return m.length - 1; } return i; };
-            
             mthCol[rowCount] = getIdx(c[0], dateMap);
             buCol[rowCount] = getIdx(c[1], buMap);
             tierCol[rowCount] = getIdx(c[2], tierMap);
@@ -36,14 +32,11 @@ async function streamCSV(url) {
             accData[rowCount] = c[7] || ""; 
             countCol[rowCount] = parseInt(c[8]) || 0;
             rowCount++;
-
             if (rowCount % 100000 === 0) self.postMessage({ type: 'PROGRESS', loaded: rowCount });
         }
     }
-
     const mNames = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const dDates = dateMap.map(v => `${mNames[parseInt(v.substring(4,6))] || '??'}-${v.substring(2,4)}`);
-    
     let relations = {};
     for (let i = 0; i < rowCount; i++) {
         const bu = buMap[buCol[i]];
@@ -53,48 +46,31 @@ async function streamCSV(url) {
         if (presData[i]) {
             presData[i].split('|').forEach(o => { 
                 const clean = o.trim(); 
-                if(clean) {
-                    relations[bu].offers.add(clean);
-                    relations[bu].types.add(clean.split('-')[0]); 
-                }
+                if(clean) { relations[bu].offers.add(clean); relations[bu].types.add(clean.split('-')[0]); }
             });
         }
     }
     for (let k in relations) for (let s in relations[k]) relations[k][s] = Array.from(relations[k][s]).sort();
-    
     self.postMessage({ type: 'READY', displayDates: dDates, bus: buMap, relations });
 }
 
 function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
     const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, typeStatsNum: {}, comboStatsNum: {} }));
-    const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x)));
-    const sIdx = new Set(f.sites.map(x => siteMap.indexOf(x)));
-    const buIdx = buMap.indexOf(f.bu);
+    const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x))), sIdx = new Set(f.sites.map(x => siteMap.indexOf(x))), buIdx = buMap.indexOf(f.bu);
     const seen = new Set();
 
     for (let i = 0; i < rowCount; i++) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
-        
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        if (!seen.has(segKey)) {
-            r.h += handledCol[i];
-            seen.add(segKey);
-        }
-
+        if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
-        const act = isSimulation 
-            ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0]))
-            : rowOff;
-        
+        const act = isSimulation ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0])) : rowOff;
         if (act.length > 0) {
-            const v = countCol[i]; 
-            r.elig += v;
-            const extActive = extData[i].split('|').some(o => act.includes(o.trim()));
-            const accActive = accData[i].split('|').some(o => act.includes(o.trim()));
+            const v = countCol[i]; r.elig += v;
+            const extActive = extData[i].split('|').some(o => act.includes(o.trim())), accActive = accData[i].split('|').some(o => act.includes(o.trim()));
             if (extActive) r.ext += v;
             if (accActive) r.acc += v;
-
             const isSuccess = (metricKey === 'eligRate') ? true : (metricKey === 'convRate') ? accActive : extActive;
             if (isSuccess) {
                 const ck = act.sort().join(' | ');
@@ -103,10 +79,7 @@ function calculate(exclOff, exclTyp, f, metricKey, isSimulation) {
             }
         }
     }
-    return res.map(r => ({ 
-        eligRate: (r.elig/r.h)*100||0, offRate: (r.ext/r.elig)*100||0, accRate: (r.acc/r.elig)*100||0, convRate: (r.acc/r.ext)*100||0, 
-        h: r.h, elig: r.elig, ext: r.ext, acc: r.acc, typeStatsNum: r.typeStatsNum, comboStatsNum: r.comboStatsNum 
-    }));
+    return res.map(r => ({ eligRate: (r.elig/r.h)*100||0, offRate: (r.ext/r.elig)*100||0, accRate: (r.acc/r.elig)*100||0, convRate: (r.acc/r.ext)*100||0, h: r.h, elig: r.elig, ext: r.ext, acc: r.acc, typeStatsNum: r.typeStatsNum, comboStatsNum: r.comboStatsNum }));
 }
 
 self.onmessage = (e) => {
