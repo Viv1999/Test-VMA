@@ -1,4 +1,4 @@
-/** worker.js - v2.3 Executive Mix Analysis (Fixed) **/
+/** worker.js - Executive v2.4 (Mix Rate Analysis) **/
 const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -75,24 +75,21 @@ function calculate(exclOff, exclTyp, f, metricKey, isSim) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        
         if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
 
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o.length > 0);
         const act = isSim ? rowOff.filter(o => !exclOff.includes(o)) : rowOff;
         
         const v = countCol[i];
-        
         if (act.length === 0) {
             if (!r.offerStats['Organic']) r.offerStats['Organic'] = { n: 0, d: 0 };
             r.offerStats['Organic'].d += v;
         } else {
             const weight = 1 / act.length;
             r.elig += v;
-            
             const extRows = extData[i].split('|').map(o => o.trim());
             const accRows = accData[i].split('|').map(o => o.trim());
-
+            
             if (extRows.some(o => act.includes(o))) r.ext += v;
             if (accRows.some(o => act.includes(o))) r.acc += v;
 

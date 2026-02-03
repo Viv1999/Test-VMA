@@ -2,36 +2,36 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | Executive v2.3</title>
+    <title>VG Optimizer | Executive v2.4</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --baseline: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: grid; grid-template-columns: 320px 1fr; grid-template-rows: 100vh; overflow: hidden; }
 
+        /* Sidebar Styling */
         .sidebar { background: var(--primary); color: white; padding: 25px; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: flex-start; gap: 22px; }
         .sidebar h1 { font-size: 18px; font-weight: 700; color: white; }
         .filter-group { width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
         .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
         .multi-box { background: #1e293b; border-radius: 6px; height: 110px; width: 100%; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
         .item-row { display: flex; align-items: center; justify-content: flex-start; gap: 10px; padding: 6px 0; font-size: 12px; color: #cbd5e1; cursor: pointer; width: 100%; }
-        
         select, .search-input { background: #1e293b; color: #ffffff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; }
         
+        /* Layout & Cards */
         .main-container { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
         .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        
         svg { width: 100%; height: 400px; overflow: visible; }
         .line-base { fill: none; stroke: var(--baseline); stroke-width: 2.5; }
         .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
         .label-base { font-size: 10px; font-weight: 700; fill: var(--baseline); }
         .label-delta { font-size: 11px; font-weight: 800; }
-
+        
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--border); }
         td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
-
         .driver-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        
         #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -39,10 +39,10 @@
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Calculating Mix Analysis...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Generating Executive View...</div></div>
 
 <aside class="sidebar">
-    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">EXECUTIVE v2.3</p></header>
+    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">EXECUTIVE v2.4</p></header>
     <div class="filter-group"><label class="filter-label">Metric</label><select id="m-select" onchange="update()"><option value="eligRate">Eligibility %</option><option value="offRate">Offer Rate %</option><option value="accRate">Accept Rate %</option><option value="convRate">Conversion %</option></select></div>
     <div class="filter-group"><label class="filter-label">Business Unit</label><select id="f-bu" onchange="applyContext()"></select></div>
     <div class="filter-group"><div style="display:flex; justify-content:space-between; width:100%"><label class="filter-label">Tiers</label></div><div id="f-tier-list" class="multi-box"></div></div>
@@ -52,24 +52,20 @@
 
 <main class="main-container">
     <div class="card">
-        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-            <h2 style="margin:0; font-size:18px; font-weight:700;">Performance Trend</h2>
-            <div style="font-size:12px; font-weight:700;"><span style="color:var(--baseline)">━ Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div>
-        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><h2 style="margin:0; font-size:18px; font-weight:700;">Performance Trend</h2><div style="font-size:12px; font-weight:700;"><span style="color:var(--baseline)">━ Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div></div>
         <svg id="chart"></svg>
     </div>
     <div class="driver-grid">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h3 id="pop-title" style="margin:0; font-size:15px;">Executive Contribution Analysis</h3>
-                <select id="period-select" onchange="update()"></select>
+                <div style="display:flex; gap:10px; align-items:center;"><h3 id="pop-title" style="margin:0; font-size:15px;">Contribution Analysis</h3>
+                    <select id="pop-level" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"><option value="type">By Offer Type</option><option value="offer">By Offer</option></select>
+                </div>
+                <select id="period-select" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"></select>
             </div>
             <table id="pop-table"><thead><tr><th>Offer/Segment</th><th>Variance Bar</th><th>Impact (pts)</th></tr></thead><tbody></tbody></table>
         </div>
-        <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
-            <label class="filter-label" style="color:var(--muted)">Simulation Shift</label>
-            <div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div>
-        </div>
+        <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;"><label class="filter-label" style="color:var(--muted)">Simulation Shift</label><div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div></div>
     </div>
 </main>
 
@@ -115,13 +111,10 @@
         const svg = document.getElementById('chart'), w = svg.clientWidth, h = 400, m = 60;
         const getX = (i) => m + (i * (w - m * 2) / (base.length - 1));
         const getY = (v) => (h - 120) - (v * (h - 180) / 100);
-        
         let html = `<line x1="${m}" y1="${h-120}" x2="${w-m}" y2="${h-120}" stroke="var(--border)" />`;
         const bPts = base.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
         const sPts = sim.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
-        
         html += `<polyline class="line-base" points="${bPts}" /><polyline class="line-sim" points="${sPts}" />`;
-        
         sim.forEach((d, i) => {
             const x = getX(i), y = getY(d[key]), by = getY(base[i][key]), diff = d[key] - base[i][key];
             html += `<text x="${x}" y="${h-50}" text-anchor="middle" font-size="10" font-weight="600" fill="var(--muted)">${displayDates[i]}</text>`;
@@ -132,56 +125,45 @@
         svg.innerHTML = html;
     }
 
-/* Update only this function in your index.html script block */
+    function renderTable(baseData, idx, key) {
+        const tbody = document.querySelector('#pop-table tbody'), curr = baseData[idx], prev = baseData[idx-1]; 
+        if(!curr || !prev) return;
+        const level = document.getElementById('pop-level').value;
+        const getDen = (p) => (key === 'eligRate' ? p.h : (key === 'convRate' ? p.ext : p.elig)) || 1;
+        const denC = getDen(curr), denP = getDen(prev);
+        const totalRateP = (prev[key] / 100);
+        const totalDelta = (curr[key] - prev[key]);
 
-function renderTable(baseData, idx, key) {
-    const tbody = document.querySelector('#pop-table tbody'), curr = baseData[idx], prev = baseData[idx-1]; 
-    if(!curr || !prev) return;
-    
-    // Choose the denominator based on the funnel stage
-    const getDen = (p) => {
-        if (key === 'eligRate') return p.h;
-        if (key === 'offRate' || key === 'accRate') return p.elig;
-        if (key === 'convRate') return p.ext;
-        return 1;
-    };
+        document.getElementById('total-delta').innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
+        document.getElementById('total-delta').style.color = totalDelta >= 0 ? 'var(--baseline)' : 'var(--danger)';
+        document.getElementById('pop-title').innerText = totalDelta >= 0 ? 'Top Growth Drivers' : 'Top Detractors';
 
-    const denC = getDen(curr), denP = getDen(prev);
-    const totalRateP = (prev[key] / 100);
-    const totalDelta = (curr[key] - prev[key]);
+        const allOffers = new Set([...Object.keys(curr.offerStats), ...Object.keys(prev.offerStats)]);
+        const map = {};
+        allOffers.forEach(off => {
+            const groupKey = (level === 'type' && off !== 'Organic') ? off.split('-')[0] : off;
+            if (!map[groupKey]) map[groupKey] = { cn:0, cd:0, pn:0, pd:0 };
+            const c = curr.offerStats[off] || { n:0, d:0 };
+            const p = prev.offerStats[off] || { n:0, d:0 };
+            map[groupKey].cn += c.n; map[groupKey].cd += c.d; map[groupKey].pn += p.n; map[groupKey].pd += p.d;
+        });
 
-    document.getElementById('total-delta').innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
-    document.getElementById('total-delta').style.color = totalDelta >= 0 ? 'var(--baseline)' : 'var(--danger)';
+        let drivers = Object.keys(map).map(name => {
+            const m = map[name];
+            const wC = m.cd / denC, wP = m.pd / denP;
+            const rC = m.cn / m.cd || 0, rP = m.pn / m.pd || 0;
+            const impact = ((wC - wP) * totalRateP) + (wC * (rC - rP));
+            return { n: name, d: impact * 100 };
+        });
 
-    const allKeys = new Set([...Object.keys(curr.offerStats), ...Object.keys(prev.offerStats)]);
-    
-    const drivers = Array.from(allKeys).map(off => {
-        const c = curr.offerStats[off] || { n: 0, d: 0 };
-        const p = prev.offerStats[off] || { n: 0, d: 0 };
-        
-        const wC = c.d / denC, wP = p.d / denP;
-        const rC = c.n / c.d || 0, rP = p.n / p.d || 0;
+        if (totalDelta >= 0) drivers = drivers.filter(d => d.d > 0).sort((a,b) => b.d - a.d);
+        else drivers = drivers.filter(d => d.d < 0).sort((a,b) => a.d - b.d);
 
-        // Variance Decomposition: Mix (Volume) Effect + Performance (Rate) Effect
-        const impact = ((wC - wP) * totalRateP) + (wC * (rC - rP));
-        return { n: off, d: impact * 100 };
-    })
-    .sort((a,b) => Math.abs(b.d) - Math.abs(a.d))
-    .slice(0, 8); // Showing top 8 for better executive visibility
-    
-    tbody.innerHTML = drivers.map(r => `
-        <tr>
-            <td><strong>${r.n}</strong></td>
-            <td>
-                <div style="width:100px; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden;">
-                    <div style="width:${Math.min(100, Math.abs(r.d)*30)}%; height:100%; background:${r.d > 0 ? 'var(--baseline)':'var(--danger)'};"></div>
-                </div>
-            </td>
-            <td style="color:${r.d < 0 ? 'var(--danger)':'var(--baseline)'}; font-weight:bold">
-                ${r.d > 0 ? '+':''}${r.d.toFixed(2)}%
-            </td>
-        </tr>`).join('');
-}    function toggleAll(cls, check) { document.querySelectorAll(`.${cls}-cb`).forEach(c => c.checked = check); update(); }
+        const rows = drivers.slice(0, 5);
+        tbody.innerHTML = rows.map(r => `<tr><td><strong>${r.n}</strong></td><td><div style="width:100px; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="width:${Math.min(100, Math.abs(r.d)*30)}%; height:100%; background:${r.d > 0 ? 'var(--baseline)':'var(--danger)'};"></div></div></td><td style="color:${r.d < 0 ? 'var(--danger)':'var(--baseline)'}; font-weight:bold">${r.d > 0 ? '+':''}${r.d.toFixed(2)}%</td></tr>`).join('');
+    }
+
+    function toggleAll(cls, check) { document.querySelectorAll(`.${cls}-cb`).forEach(c => c.checked = check); update(); }
     worker.postMessage({ type: 'LOAD', url: 'offer_sup_dat.csv' });
 </script>
 </body>
