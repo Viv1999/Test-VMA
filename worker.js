@@ -1,4 +1,4 @@
-/** worker.js - Executive Fractional Attribution **/
+/** worker.js - v2.3 Mix Rate Analysis **/
 const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -65,7 +65,7 @@ async function streamCSV(url) {
 }
 
 function calculate(exclOff, exclTyp, f, metricKey, isSim) {
-    const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, typeStatsNum: {}, comboStatsNum: {} }));
+    const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, offerStats: {} }));
     const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x)));
     const sIdx = new Set(f.sites.map(x => siteMap.indexOf(x)));
     const buIdx = buMap.indexOf(f.bu);
@@ -75,47 +75,42 @@ function calculate(exclOff, exclTyp, f, metricKey, isSim) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        
         if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
 
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o);
         const act = isSim ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0])) : rowOff;
         
-        if (act.length > 0) {
-            const v = countCol[i];
-            const weight = 1 / act.length; // FRACTIONAL SPLIT
-            
+        const v = countCol[i];
+        if (act.length === 0) {
+            // Track Organic/No-Offer rows as a baseline driver
+            if (!r.offerStats['Organic']) r.offerStats['Organic'] = { n: 0, d: 0 };
+            r.offerStats['Organic'].d += v;
+        } else {
+            const weight = 1 / act.length;
             r.elig += v;
-            const extAct = extData[i].split('|').map(o => o.trim()).filter(o => act.includes(o));
-            const accAct = accData[i].split('|').map(o => o.trim()).filter(o => act.includes(o));
+            const extRows = extData[i].split('|').map(o => o.trim());
+            const accRows = accData[i].split('|').map(o => o.trim());
+            
+            if (extRows.some(o => act.includes(o))) r.ext += v;
+            if (accRows.some(o => act.includes(o))) r.acc += v;
 
-            if (extAct.length > 0) r.ext += v; 
-            if (accAct.length > 0) r.acc += v;
-
-            // FRACTIONAL ATTRIBUTION FOR DRIVERS
             act.forEach(off => {
-                const type = off.split('-')[0];
-                let successValue = 0;
-
-                // Determine if this specific offer fraction contributed to the metric
-                if (metricKey === 'eligRate') successValue = v * weight;
-                else if (metricKey === 'offRate' || metricKey === 'convRate') {
-                    if (extAct.includes(off)) successValue = v * weight;
-                } else if (metricKey === 'accRate') {
-                    if (accAct.includes(off)) successValue = v * weight;
-                }
-
-                if (successValue > 0) {
-                    r.comboStatsNum[off] = (r.comboStatsNum[off] || 0) + successValue;
-                    r.typeStatsNum[type] = (r.typeStatsNum[type] || 0) + successValue;
-                }
+                if (!r.offerStats[off]) r.offerStats[off] = { n: 0, d: 0 };
+                r.offerStats[off].d += v * weight;
+                
+                let isSuccess = false;
+                if (metricKey === 'eligRate') isSuccess = true;
+                else if (metricKey === 'offRate' || metricKey === 'convRate') isSuccess = extRows.includes(off);
+                else if (metricKey === 'accRate') isSuccess = accRows.includes(off);
+                
+                if (isSuccess) r.offerStats[off].n += v * weight;
             });
         }
     }
     return res.map(r => ({ 
         eligRate: r.h > 0 ? (r.elig/r.h)*100 : 0, offRate: r.elig > 0 ? (r.ext/r.elig)*100 : 0, 
         accRate: r.elig > 0 ? (r.acc/r.elig)*100 : 0, convRate: r.ext > 0 ? (r.acc/r.ext)*100 : 0, 
-        h: r.h, elig: r.elig, ext: r.ext, acc: r.acc, typeStatsNum: r.typeStatsNum, comboStatsNum: r.comboStatsNum 
+        h: r.h, elig: r.elig, ext: r.ext, acc: r.acc, offerStats: r.offerStats
     }));
 }
 
