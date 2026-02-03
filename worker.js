@@ -1,4 +1,4 @@
-/** worker.js - v2.2 Stable Math & Directional Drivers **/
+/** worker.js - Executive Fractional Attribution **/
 const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -82,17 +82,34 @@ function calculate(exclOff, exclTyp, f, metricKey, isSim) {
         const act = isSim ? rowOff.filter(o => !exclOff.includes(o) && !exclTyp.includes(o.split('-')[0])) : rowOff;
         
         if (act.length > 0) {
-            const v = countCol[i]; r.elig += v;
-            const extAct = extData[i].split('|').some(o => act.includes(o.trim()));
-            const accAct = accData[i].split('|').some(o => act.includes(o.trim()));
-            if (extAct) r.ext += v; if (accAct) r.acc += v;
+            const v = countCol[i];
+            const weight = 1 / act.length; // FRACTIONAL SPLIT
+            
+            r.elig += v;
+            const extAct = extData[i].split('|').map(o => o.trim()).filter(o => act.includes(o));
+            const accAct = accData[i].split('|').map(o => o.trim()).filter(o => act.includes(o));
 
-            const isSuccess = (metricKey === 'eligRate') ? true : (metricKey === 'convRate') ? accAct : extAct;
-            if (isSuccess) {
-                const ck = act.sort().join(' | ');
-                r.comboStatsNum[ck] = (r.comboStatsNum[ck] || 0) + v;
-                new Set(act.map(o => o.split('-')[0])).forEach(t => r.typeStatsNum[t] = (r.typeStatsNum[t] || 0) + v);
-            }
+            if (extAct.length > 0) r.ext += v; 
+            if (accAct.length > 0) r.acc += v;
+
+            // FRACTIONAL ATTRIBUTION FOR DRIVERS
+            act.forEach(off => {
+                const type = off.split('-')[0];
+                let successValue = 0;
+
+                // Determine if this specific offer fraction contributed to the metric
+                if (metricKey === 'eligRate') successValue = v * weight;
+                else if (metricKey === 'offRate' || metricKey === 'convRate') {
+                    if (extAct.includes(off)) successValue = v * weight;
+                } else if (metricKey === 'accRate') {
+                    if (accAct.includes(off)) successValue = v * weight;
+                }
+
+                if (successValue > 0) {
+                    r.comboStatsNum[off] = (r.comboStatsNum[off] || 0) + successValue;
+                    r.typeStatsNum[type] = (r.typeStatsNum[type] || 0) + successValue;
+                }
+            });
         }
     }
     return res.map(r => ({ 
