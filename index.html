@@ -132,38 +132,56 @@
         svg.innerHTML = html;
     }
 
-    function renderTable(baseData, idx, key) {
-        const tbody = document.querySelector('#pop-table tbody'), curr = baseData[idx], prev = baseData[idx-1]; if(!curr || !prev) return;
-        
-        // Denominator Selection based on Metric Stage
-        const getDen = (p) => (key === 'eligRate' ? p.h : (key === 'convRate' ? p.ext : p.elig)) || 1;
-        const denC = getDen(curr), denP = getDen(prev);
-        const totalRateP = (prev[key] / 100);
-        
-        const delta = curr[key] - prev[key];
-        document.getElementById('total-delta').innerText = (delta > 0 ? '+' : '') + delta.toFixed(2) + '%';
-        document.getElementById('total-delta').style.color = delta >= 0 ? 'var(--baseline)' : 'var(--danger)';
+/* Update only this function in your index.html script block */
 
-        const allOffers = new Set([...Object.keys(curr.offerStats), ...Object.keys(prev.offerStats)]);
-        
-        const drivers = Array.from(allOffers).map(off => {
-            const c = curr.offerStats[off] || { n: 0, d: 0 };
-            const p = prev.offerStats[off] || { n: 0, d: 0 };
-            
-            const wC = c.d / denC, wP = p.d / denP;
-            const rC = c.n / c.d || 0, rP = p.n / p.d || 0;
+function renderTable(baseData, idx, key) {
+    const tbody = document.querySelector('#pop-table tbody'), curr = baseData[idx], prev = baseData[idx-1]; 
+    if(!curr || !prev) return;
+    
+    // Choose the denominator based on the funnel stage
+    const getDen = (p) => {
+        if (key === 'eligRate') return p.h;
+        if (key === 'offRate' || key === 'accRate') return p.elig;
+        if (key === 'convRate') return p.ext;
+        return 1;
+    };
 
-            // VARIANCE DECOMPOSITION FORMULA: Selection + Performance
-            const impact = ((wC - wP) * totalRateP) + (wC * (rC - rP));
-            return { n: off, d: impact * 100 };
-        })
-        .sort((a,b) => Math.abs(b.d) - Math.abs(a.d))
-        .slice(0, 6);
-        
-        tbody.innerHTML = drivers.map(r => `<tr><td><strong>${r.n}</strong></td><td><div style="width:100px; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden;"><div style="width:${Math.min(100, Math.abs(r.d)*20)}%; height:100%; background:${r.d > 0 ? 'var(--baseline)':'var(--danger)'};"></div></div></td><td style="color:${r.d < 0 ? 'var(--danger)':'var(--baseline)'}; font-weight:bold">${r.d > 0 ? '+':''}${r.d.toFixed(2)}%</td></tr>`).join('');
-    }
+    const denC = getDen(curr), denP = getDen(prev);
+    const totalRateP = (prev[key] / 100);
+    const totalDelta = (curr[key] - prev[key]);
 
-    function toggleAll(cls, check) { document.querySelectorAll(`.${cls}-cb`).forEach(c => c.checked = check); update(); }
+    document.getElementById('total-delta').innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
+    document.getElementById('total-delta').style.color = totalDelta >= 0 ? 'var(--baseline)' : 'var(--danger)';
+
+    const allKeys = new Set([...Object.keys(curr.offerStats), ...Object.keys(prev.offerStats)]);
+    
+    const drivers = Array.from(allKeys).map(off => {
+        const c = curr.offerStats[off] || { n: 0, d: 0 };
+        const p = prev.offerStats[off] || { n: 0, d: 0 };
+        
+        const wC = c.d / denC, wP = p.d / denP;
+        const rC = c.n / c.d || 0, rP = p.n / p.d || 0;
+
+        // Variance Decomposition: Mix (Volume) Effect + Performance (Rate) Effect
+        const impact = ((wC - wP) * totalRateP) + (wC * (rC - rP));
+        return { n: off, d: impact * 100 };
+    })
+    .sort((a,b) => Math.abs(b.d) - Math.abs(a.d))
+    .slice(0, 8); // Showing top 8 for better executive visibility
+    
+    tbody.innerHTML = drivers.map(r => `
+        <tr>
+            <td><strong>${r.n}</strong></td>
+            <td>
+                <div style="width:100px; height:8px; background:#f1f5f9; border-radius:4px; overflow:hidden;">
+                    <div style="width:${Math.min(100, Math.abs(r.d)*30)}%; height:100%; background:${r.d > 0 ? 'var(--baseline)':'var(--danger)'};"></div>
+                </div>
+            </td>
+            <td style="color:${r.d < 0 ? 'var(--danger)':'var(--baseline)'}; font-weight:bold">
+                ${r.d > 0 ? '+':''}${r.d.toFixed(2)}%
+            </td>
+        </tr>`).join('');
+}    function toggleAll(cls, check) { document.querySelectorAll(`.${cls}-cb`).forEach(c => c.checked = check); update(); }
     worker.postMessage({ type: 'LOAD', url: 'offer_sup_dat.csv' });
 </script>
 </body>
