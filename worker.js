@@ -1,4 +1,4 @@
-/** worker.js - Executive v2.4 (Mix Rate Analysis) **/
+/** worker.js - v2.5 Perfect Attribution (Mix Rate Analysis) **/
 const MAX_ROWS = 1000000;
 const mthCol = new Uint8Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -64,7 +64,7 @@ async function streamCSV(url) {
     self.postMessage({ type: 'READY', displayDates: dDates, bus: buMap, relations });
 }
 
-function calculate(exclOff, exclTyp, f, metricKey, isSim) {
+function calculate(exclOff, f, metricKey) {
     const res = dateMap.map(() => ({ h: 0, elig: 0, ext: 0, acc: 0, offerStats: {} }));
     const tIdx = new Set(f.tiers.map(x => tierMap.indexOf(x)));
     const sIdx = new Set(f.sites.map(x => siteMap.indexOf(x)));
@@ -75,49 +75,55 @@ function calculate(exclOff, exclTyp, f, metricKey, isSim) {
         if (buCol[i] !== buIdx || !tIdx.has(tierCol[i]) || !sIdx.has(siteCol[i])) continue;
         const d = mthCol[i], r = res[d];
         const segKey = `${d}-${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
+        
         if (!seen.has(segKey)) { r.h += handledCol[i]; seen.add(segKey); }
 
         const rowOff = presData[i].split('|').map(o => o.trim()).filter(o => o.length > 0);
-        const act = isSim ? rowOff.filter(o => !exclOff.includes(o)) : rowOff;
-        
+        // Exclusions only apply to the simulation chart, not the baseline attribution
+        const act = rowOff.filter(o => !exclOff.includes(o));
         const v = countCol[i];
+        
+        const extRows = extData[i].split('|').map(o => o.trim());
+        const accRows = accData[i].split('|').map(o => o.trim());
+
+        // Update Funnel Totals
+        r.elig += v;
+        if (extRows.some(o => act.includes(o))) r.ext += v;
+        if (accRows.some(o => act.includes(o))) r.acc += v;
+
+        // Attribution Logic
         if (act.length === 0) {
             if (!r.offerStats['Organic']) r.offerStats['Organic'] = { n: 0, d: 0 };
             r.offerStats['Organic'].d += v;
+            // Success in 'Organic' is rare but tracked for mathematical closure
+            if (metricKey === 'eligRate') r.offerStats['Organic'].n += v;
         } else {
             const weight = 1 / act.length;
-            r.elig += v;
-            const extRows = extData[i].split('|').map(o => o.trim());
-            const accRows = accData[i].split('|').map(o => o.trim());
-            
-            if (extRows.some(o => act.includes(o))) r.ext += v;
-            if (accRows.some(o => act.includes(o))) r.acc += v;
-
             act.forEach(off => {
                 if (!r.offerStats[off]) r.offerStats[off] = { n: 0, d: 0 };
                 r.offerStats[off].d += v * weight;
                 
-                let isSuccess = false;
-                if (metricKey === 'eligRate') isSuccess = true;
-                else if (metricKey === 'offRate' || metricKey === 'convRate') isSuccess = extRows.includes(off);
-                else if (metricKey === 'accRate') isSuccess = accRows.includes(off);
+                let success = false;
+                if (metricKey === 'eligRate') success = true;
+                else if (metricKey === 'offRate' || metricKey === 'convRate') success = extRows.includes(off);
+                else if (metricKey === 'accRate') success = accRows.includes(off);
                 
-                if (isSuccess) r.offerStats[off].n += v * weight;
+                if (success) r.offerStats[off].n += v * weight;
             });
         }
     }
     return res.map(r => ({ 
-        eligRate: r.h > 0 ? (r.elig/r.h)*100 : 0, offRate: r.elig > 0 ? (r.ext/r.elig)*100 : 0, 
-        accRate: r.elig > 0 ? (r.acc/r.elig)*100 : 0, convRate: r.ext > 0 ? (r.acc/r.ext)*100 : 0, 
-        h: r.h, elig: r.elig, ext: r.ext, acc: r.acc, offerStats: r.offerStats
+        eligRate: (r.elig/r.h)*100||0, offRate: (r.ext/r.elig)*100||0, 
+        accRate: (r.acc/r.elig)*100||0, convRate: (r.acc/r.ext)*100||0, 
+        offerStats: r.offerStats, h: r.h, elig: r.elig, ext: r.ext, acc: r.acc
     }));
 }
 
 self.onmessage = (e) => {
     if (e.data.type === 'LOAD') streamCSV(e.data.url);
     if (e.data.type === 'PROCESS') {
-        const base = calculate([], [], e.data.filters, e.data.metricKey, false);
-        const impact = calculate(e.data.exclOff, e.data.exclTyp, e.data.filters, e.data.metricKey, true);
+        const base = calculate([], e.data.filters, e.data.metricKey);
+        const impact = calculate(e.data.exclOff, e.data.filters, e.data.metricKey);
         self.postMessage({ type: 'DONE', base, impact, periodIdx: e.data.pIdx });
     }
 };
