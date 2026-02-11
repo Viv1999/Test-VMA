@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VG Metric Analyzer | Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #0f172a; --accent: #3b82f6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .container { max-width: 900px; width: 95%; text-align: center; padding: 40px; }
+        
+        h1 { font-size: 3rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
+        .subtitle { font-size: 1.1rem; color: var(--muted); margin-bottom: 50px; }
+
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; text-align: left; }
+        .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        
+        h2 { font-size: 1.25rem; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 5px; }
+        p { line-height: 1.6; color: var(--muted); font-size: 0.95rem; flex-grow: 1; margin-bottom: 25px; }
+
+        .btn { display: inline-block; padding: 12px 24px; background: var(--accent); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s; text-align: center; }
+        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        
+        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-size: 0.85rem; padding: 10px; }
+        .btn-outline:hover { background: var(--accent); color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>VG Metric Analyzer</h1>
+    <p class="subtitle">Advanced Retention Performance & Mix-Rate Attribution Suite</p>
+
+    <div class="grid">
+        <div class="section-card">
+            <h2>Offer Level Analysis</h2>
+            <p>Deep dive into specific offer performance. Features simulation mode to exclude offers, variance decomposition, and Period-over-Period mix shifts.</p>
+            <a href="offer_analyzer.html" class="btn">Launch Offer Dashboard</a>
+        </div>
+
+        <div class="section-card">
+            <h2>Split Views: Call Category</h2>
+            <p>High-level granularity across your call funnel. Monitor specific categorical shifts without offer-level noise.</p>
+            <div class="split-grid">
+                <a href="eligibility_split.html" class="btn btn-outline">Eligibility</a>
+                <a href="offer_rate_split.html" class="btn btn-outline">Offer Rate</a>
+                <a href="accept_rate_split.html" class="btn btn-outline">Accept Rate</a>
+                <a href="conversion_split.html" class="btn btn-outline">Conversion</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
