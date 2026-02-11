@@ -2,46 +2,115 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Metric Analyzer | Home</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>VG Metric Analyzer | Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #0f172a; --accent: #3b82f6; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .container { max-width: 900px; width: 95%; text-align: center; padding: 40px; }
-        
-        h1 { font-size: 3rem; font-weight: 800; color: var(--primary); margin-bottom: 10px; }
-        .subtitle { font-size: 1.1rem; color: var(--muted); margin-bottom: 50px; }
+        /* Shared Palette from Dashboard */
+        :root { 
+            --primary: #0f172a; 
+            --accent: #3b82f6; 
+            --baseline: #10b981; 
+            --bg: #f8fafc; 
+            --card: #ffffff; 
+            --border: #e2e8f0; 
+            --text: #1e293b; 
+            --muted: #64748b; 
+        }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; text-align: left; }
-        .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        h2 { font-size: 1.25rem; margin-bottom: 15px; color: var(--primary); border-bottom: 2px solid var(--accent); display: inline-block; padding-bottom: 5px; }
-        p { line-height: 1.6; color: var(--muted); font-size: 0.95rem; flex-grow: 1; margin-bottom: 25px; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--bg); 
+            background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0, transparent 50%), 
+                              radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0, transparent 50%);
+            color: var(--text); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+        }
 
-        .btn { display: inline-block; padding: 12px 24px; background: var(--accent); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; transition: all 0.2s; text-align: center; }
-        .btn:hover { background: #2563eb; transform: translateY(-2px); }
+        .container { max-width: 1000px; width: 90%; padding: 40px; }
+
+        /* Header Section */
+        header { text-align: center; margin-bottom: 60px; }
+        h1 { font-size: 3.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; margin-bottom: 15px; }
+        .badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; vertical-align: middle; margin-left: 10px; font-weight: 600; }
+        .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+        /* Grid Layout */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         
-        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-size: 0.85rem; padding: 10px; }
-        .btn-outline:hover { background: var(--accent); color: white; }
+        .section-card { 
+            background: var(--card); 
+            border: 1px solid var(--border); 
+            border-radius: 16px; 
+            padding: 40px; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); 
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        .section-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+
+        h2 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        h2::before { content: ''; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
+
+        p { color: var(--muted); line-height: 1.7; margin-bottom: 30px; font-size: 0.95rem; flex-grow: 1; }
+
+        /* Buttons */
+        .btn { 
+            display: block; 
+            width: 100%;
+            padding: 14px; 
+            background: var(--primary); 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 8px; 
+            font-weight: 600; 
+            text-align: center; 
+            transition: background 0.2s; 
+        }
+        .btn:hover { background: var(--accent); }
+
+        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+        .btn-outline { 
+            background: transparent; 
+            border: 1px solid var(--border); 
+            color: var(--primary); 
+            font-size: 0.85rem; 
+            padding: 12px; 
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+        }
+        .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+
+        /* Footer Decoration */
+        footer { margin-top: 50px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>VG Metric Analyzer</h1>
-    <p class="subtitle">Advanced Retention Performance & Mix-Rate Attribution Suite</p>
+    <header>
+        <h1>VG Metric Analyzer<span class="badge">PRO</span></h1>
+        <p class="subtitle">A unified intelligence platform for call center funnel optimization and fractional offer attribution.</p>
+    </header>
 
     <div class="grid">
         <div class="section-card">
-            <h2>Offer Level Analysis</h2>
-            <p>Deep dive into specific offer performance. Features simulation mode to exclude offers, variance decomposition, and Period-over-Period mix shifts.</p>
-            <a href="offer_analyzer.html" class="btn">Launch Offer Dashboard</a>
+            <h2>Offer Optimization</h2>
+            <p>Simulate performance shifts by excluding specific incentives. Features <strong>Mix-Rate Analysis</strong> to decompose variance into volume and performance effects.</p>
+            <a href="offer_analyzer.html" class="btn">Open Offer Dashboard</a>
         </div>
 
         <div class="section-card">
-            <h2>Split Views: Call Category</h2>
-            <p>High-level granularity across your call funnel. Monitor specific categorical shifts without offer-level noise.</p>
+            <h2>Category Splits</h2>
+            <p>Analyze performance across <strong>Call Categories</strong>. Isolate trends at key funnel stages to identify categorical drivers without offer-level complexity.</p>
             <div class="split-grid">
                 <a href="eligibility_split.html" class="btn btn-outline">Eligibility</a>
                 <a href="offer_rate_split.html" class="btn btn-outline">Offer Rate</a>
@@ -50,6 +119,8 @@
             </div>
         </div>
     </div>
+
+    <footer>Standardizing Retention Insights &copy; 2026</footer>
 </div>
 
 </body>
