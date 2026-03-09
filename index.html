@@ -2,126 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Metric Analyzer | Portal</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>VG Metric Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* Shared Palette from Dashboard */
-        :root { 
-            --primary: #0f172a; 
-            --accent: #3b82f6; 
-            --baseline: #10b981; 
-            --bg: #f8fafc; 
-            --card: #ffffff; 
-            --border: #e2e8f0; 
-            --text: #1e293b; 
-            --muted: #64748b; 
-        }
-
+        :root { --primary: #0f172a; --accent: #3b82f6; --baseline: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* Navigation / View States */
+        #portal-view { display: flex; align-items: center; justify-content: center; height: 100vh; }
+        #dashboard-view { display: none; grid-template-columns: 320px 1fr; height: 100vh; overflow: hidden; }
         
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background-color: var(--bg); 
-            background-image: radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.05) 0, transparent 50%), 
-                              radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0, transparent 50%);
-            color: var(--text); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            min-height: 100vh; 
-        }
+        /* Portal Styles (Your existing design) */
+        .portal-container { max-width: 1000px; width: 90%; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; }
+        .section-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px; transition: transform 0.2s; cursor: pointer; }
+        .section-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+        .btn { display: block; width: 100%; padding: 14px; background: var(--primary); color: white; text-decoration: none; border-radius: 8px; font-weight: 600; text-align: center; border: none; cursor: pointer; }
 
-        .container { max-width: 1000px; width: 90%; padding: 40px; }
+        /* Dashboard Sidebar */
+        .sidebar { background: var(--primary); color: white; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .filter-group { width: 100%; }
+        .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; display: block; }
+        .multi-box { background: #1e293b; border-radius: 6px; height: 110px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
+        .item-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; color: #cbd5e1; cursor: pointer; }
+        select, .search-input { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; }
 
-        /* Header Section */
-        header { text-align: center; margin-bottom: 60px; }
-        h1 { font-size: 3.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; margin-bottom: 15px; }
-        .badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; vertical-align: middle; margin-left: 10px; font-weight: 600; }
-        .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
+        /* Main Dashboard Area */
+        .main-content { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+        .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .kpi-card { text-align: center; padding: 15px; background: #f1f5f9; border-radius: 8px; }
+        .kpi-val { font-size: 24px; font-weight: 800; color: var(--primary); }
+        canvas { width: 100%; height: 300px; }
 
-        /* Grid Layout */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        
-        .section-card { 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            border-radius: 16px; 
-            padding: 40px; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); 
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            flex-direction: column;
-        }
-        .section-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-
-        h2 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
-        h2::before { content: ''; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
-
-        p { color: var(--muted); line-height: 1.7; margin-bottom: 30px; font-size: 0.95rem; flex-grow: 1; }
-
-        /* Buttons */
-        .btn { 
-            display: block; 
-            width: 100%;
-            padding: 14px; 
-            background: var(--primary); 
-            color: white; 
-            text-decoration: none; 
-            border-radius: 8px; 
-            font-weight: 600; 
-            text-align: center; 
-            transition: background 0.2s; 
-        }
-        .btn:hover { background: var(--accent); }
-
-        .split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-        .btn-outline { 
-            background: transparent; 
-            border: 1px solid var(--border); 
-            color: var(--primary); 
-            font-size: 0.85rem; 
-            padding: 12px; 
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            text-align: center;
-            transition: all 0.2s;
-        }
-        .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
-
-        /* Footer Decoration */
-        footer { margin-top: 50px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        /* Loader Overlay */
+        #loader { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; visibility: hidden; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>VG Metric Analyzer</h1>
-        <p class="subtitle">Dashboard to self service and track the drivers impacting US Value Generation metrics</p>
-    </header>
+<div id="loader"><div class="spinner"></div><p id="load-text" style="margin-top:15px">Loading Weekly Data...</p></div>
 
-    <div class="grid">
-        <div class="section-card">
-            <h2>Offer Type & Offer Product Level</h2>
-            <p>Simulate performance shifts by excluding specific offer types/offers. Also features <strong>Mix-Rate Analysis</strong> to decompose Period over Period change into individual offer types/offers.</p>
-            <a href="offer_analyzer.html" class="btn">Offer-Level Dashboard</a>
-        </div>
-
-        <div class="section-card">
-            <h2>Call Category Level</h2>
-            <p>Created using <strong>Metric SPLIT</strong> tool, Includes Mix-Rate Analysis tree providing high customization flexibility to investigate impact of categories on Period on Period metric change.</p>
-            <div class="split-grid">
-                <a href="eligibility_split.html" class="btn btn-outline">Eligibility%</a>
-                <a href="offer_rate_split.html" class="btn btn-outline">Offer Rate%</a>
-                <a href="accept_rate_split.html" class="btn btn-outline">Accept Rate%</a>
-                <a href="conversion_split.html" class="btn btn-outline">Conversion%</a>
+<section id="portal-view">
+    <div class="portal-container">
+        <header style="text-align:center">
+            <h1 style="font-size:3.5rem; font-weight:800; color:var(--primary)">VG Metric Analyzer</h1>
+            <p style="color:var(--muted)">Dashboard to track the drivers impacting US Value Generation metrics</p>
+        </header>
+        <div class="grid">
+            <div class="section-card" onclick="openDashboard()">
+                <h2>Offer-Level Dashboard</h2>
+                <p>Simulate performance shifts and analyze offer contribution.</p>
+                <button class="btn">Launch Dashboard</button>
+            </div>
+            <div class="section-card" style="opacity:0.5; cursor:not-allowed">
+                <h2>Call Category Level</h2>
+                <p>Metric SPLIT analysis (Coming Soon).</p>
             </div>
         </div>
     </div>
+</section>
 
-    <footer>The metrics in this dashboard are to be considered directional and to be used only for analytical use cases. Please refer to nvision dashboards for official reporting</footer>
-</div>
+<section id="dashboard-view">
+    <aside class="sidebar">
+        <h1>VG Optimizer</h1>
+        <div class="filter-group">
+            <label class="filter-label">Data Horizon</label>
+            <select id="horizon-select" onchange="switchHorizon(this.value)">
+                <option value="weekly">Weekly View</option>
+                <option value="monthly" disabled id="opt-monthly">Monthly View (Loading...)</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label class="filter-label">Metric</label>
+            <select id="metric-select" onchange="runUpdate()"></select>
+        </div>
+        <div class="filter-group"><label class="filter-label">Business Unit</label><select id="f-bu" onchange="runUpdate()"></select></div>
+        <div class="filter-group"><label class="filter-label">Sites</label><div id="f-site-list" class="multi-box"></div></div>
+        <div class="filter-group"><label class="filter-label">Tiers</label><div id="f-tier-list" class="multi-box"></div></div>
+        <div class="filter-group"><label class="filter-label">Exclude Offers</label><div id="f-offer-list" class="multi-box" style="height:150px"></div></div>
+        <button class="btn" onclick="location.reload()">Back to Portal</button>
+    </aside>
+
+    <main class="main-content">
+        <div class="kpi-grid">
+            <div class="kpi-card"><label class="filter-label">Eligibility</label><div id="kpi-elig" class="kpi-val">0%</div></div>
+            <div class="kpi-card"><label class="filter-label">Offer Rate</label><div id="kpi-offer" class="kpi-val">0%</div></div>
+            <div class="kpi-card"><label class="filter-label">Accept Rate</label><div id="kpi-accept" class="kpi-val">0%</div></div>
+            <div class="kpi-card"><label class="filter-label">Conversion</label><div id="kpi-conv" class="kpi-val">0%</div></div>
+        </div>
+        <div class="card">
+            <h2 style="font-size:16px; margin-bottom:15px">Performance Trend</h2>
+            <canvas id="trendChart"></canvas>
+        </div>
+    </main>
+</section>
+
 <script src="app-controller.js"></script>
 </body>
 </html>
