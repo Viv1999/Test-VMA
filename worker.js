@@ -1,4 +1,4 @@
-/** worker.js - v2.7 Perfect Attribution & Pool Logic **/
+/** worker.js - v2.9 Dual Aggregation & Fuzzy Mapping **/
 const MAX_ROWS = 1000000;
 const timeCol = new Uint32Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -9,7 +9,7 @@ let timeMap = [], buMap = [], tierMap = [], siteMap = [], rowCount = 0;
 
 self.onmessage = (e) => {
     try {
-        const { type, data, filters, exclOff, metricKey } = e.data;
+        const { type, data, filters, exclOff, exclTypes, metricKey } = e.data;
 
         if (type === 'INIT_DATA') {
             rowCount = 0; timeMap = []; buMap = []; tierMap = []; siteMap = [];
@@ -46,46 +46,63 @@ self.onmessage = (e) => {
         }
 
         if (type === 'PROCESS') {
-            const base = calculate([], filters, metricKey);
-            const impact = calculate(exclOff, filters, metricKey);
+            const base = calculate([], [], filters, metricKey);
+            const impact = calculate(exclOff, exclTypes, filters, metricKey);
             self.postMessage({ type: 'DONE', base, impact });
         }
     } catch (err) { console.error("Worker Error:", err); }
 };
 
-function calculate(exclOff, f, metricKey) {
-    const periods = timeMap.map(() => ({ hPool: new Map(), pres: 0, ext: 0, acc: 0, offerStats: {} }));
+function calculate(exclOff, exclTypes, f, metricKey) {
+    const periods = timeMap.map(() => ({ hPool: new Map(), pres: 0, ext: 0, acc: 0, offerStats: {}, typeStats: {} }));
     const buIdx = buMap.indexOf(f.bu), sIdx = new Set(f.sites.map(s => siteMap.indexOf(s))), tIdx = new Set(f.tiers.map(t => tierMap.indexOf(t)));
+    const typeExclSet = new Set(exclTypes);
 
     for (let i = 0; i < rowCount; i++) {
         if (buCol[i] !== buIdx || !sIdx.has(siteCol[i]) || !tIdx.has(tierCol[i])) continue;
+        
         const p = periods[timeCol[i]], v = countCol[i];
         const poolKey = `${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        
         if (!p.hPool.has(poolKey)) p.hPool.set(poolKey, handledCol[i]);
 
-        const rP = presData[i].split('|').filter(o => o && !exclOff.includes(o));
-        const rE = extData[i].split('|').filter(o => o && !exclOff.includes(o));
-        const rA = accData[i].split('|').filter(o => o && !exclOff.includes(o));
+        const isExcl = (o) => exclOff.includes(o) || typeExclSet.has(o.split('-')[0].trim());
+
+        const rP = presData[i].split('|').filter(o => o && !isExcl(o));
+        const rE = extData[i].split('|').filter(o => o && !isExcl(o));
+        const rA = accData[i].split('|').filter(o => o && !isExcl(o));
 
         if (rP.length > 0) p.pres += v;
         if (rE.length > 0) p.ext += v;
         if (rA.length > 0) p.acc += v;
 
         rP.forEach(off => {
+            const type = off.split('-')[0].trim();
+            const weight = v / rP.length;
+
             if (!p.offerStats[off]) p.offerStats[off] = { n: 0, d: 0 };
-            p.offerStats[off].d += v / rP.length;
-            let success = (metricKey === 'eligRate') || (metricKey === 'offRate' && rE.includes(off)) || (metricKey === 'accRate' && rA.includes(off)) || (metricKey === 'convRate' && rE.includes(off) && rA.includes(off));
-            if (success) p.offerStats[off].n += v / rP.length;
+            p.offerStats[off].d += weight;
+
+            if (!p.typeStats[type]) p.typeStats[type] = { n: 0, d: 0 };
+            p.typeStats[type].d += weight;
+
+            let success = (metricKey === 'eligRate') || 
+                          (metricKey === 'offRate' && rE.includes(off)) || 
+                          (metricKey === 'accRate' && rA.includes(off)) || 
+                          (metricKey === 'convRate' && rE.includes(off) && rA.includes(off));
+            
+            if (success) {
+                p.offerStats[off].n += weight;
+                p.typeStats[type].n += weight;
+            }
         });
     }
 
     return periods.map(p => {
-        const h = Array.from(p.hPool.values()).reduce((a, b) => a + b, 0);
+        const h = Array.from(p.hPool.values()).reduce((a, b) => a + b, 0) || 1;
         return { 
             eligRate: (p.pres/h)*100||0, offRate: (p.ext/p.pres)*100||0, 
             accRate: (p.acc/p.pres)*100||0, convRate: (p.acc/p.ext)*100||0, 
-            h, offerStats: p.offerStats 
+            h, offerStats: p.offerStats, typeStats: p.typeStats 
         };
     });
 }
