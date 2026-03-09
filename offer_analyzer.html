@@ -33,7 +33,7 @@
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Assembling Dashboard...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Calibrating Real-Time Data...</div></div>
 
 <aside class="sidebar">
     <h1>VG Optimizer</h1>
@@ -79,7 +79,7 @@
             DataCache.weekly = await loadAndParse('weekly_aggregated.csv');
             worker.postMessage({ type: 'INIT_DATA', data: DataCache.weekly });
             loadMonthly();
-        } catch (e) { document.getElementById('load-text').innerText = "Data Load Failed"; }
+        } catch (e) { document.getElementById('load-text').innerText = "Load Failed"; }
     };
 
     async function loadMonthly() {
@@ -124,7 +124,7 @@
     };
 
     function switchHorizon(v) {
-        if(!DataCache[v]) return alert("Still loading...");
+        if(!DataCache[v]) return alert("Data still processing...");
         currentHorizon = v;
         document.querySelectorAll('.h-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${v}`));
         document.getElementById('loader').style.display = 'flex';
@@ -138,14 +138,16 @@
         const types = [...new Set(f.offers.map(o => o.split('-')[0].trim()))].sort();
         fill('f-type-list', types, 'type');
 
-        // DYNAMIC LATEST vs PREV Default Selection
+        // DYNAMIC LATEST vs PREV (Calculated from end of file)
         const pS = document.getElementById('period-select');
-        const options = timeLabels.map((d, i) => {
+        const options = timeLabels.map((label, i) => {
             if (i === 0) return null;
-            return { val: i, text: `${d} vs ${timeLabels[i-1]}` };
-        }).filter(o => o).reverse();
-        
-        pS.innerHTML = options.map((o, idx) => `<option value="${o.val}" ${idx === 0 ? 'selected' : ''}>${o.text}</option>`).join('');
+            return { val: i, text: `${label} vs ${timeLabels[i-1]}` };
+        }).filter(opt => opt !== null).reverse();
+
+        pS.innerHTML = options.map((opt, idx) => 
+            `<option value="${opt.val}" ${idx === 0 ? 'selected' : ''}>${opt.text}</option>`
+        ).join('');
     }
 
     function update() {
