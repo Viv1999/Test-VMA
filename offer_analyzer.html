@@ -105,50 +105,69 @@
 
 <script>
 const worker = new Worker('worker.js');
-let currentHorizon = 'weekly';
 const DataCache = { weekly: null, monthly: null };
+let currentHorizon = 'weekly';
 
-// Start loading immediately when the page opens
 window.onload = async () => {
+    // 1. Start High Priority Weekly Load
     try {
+        console.log("Fetching Weekly...");
         updateLoader("Fetching Weekly Data...");
-        // 1. High Priority: Weekly
-        DataCache.weekly = await loadAndParse('weekly_aggregated.csv');
         
-        // Send to worker and show UI
-        worker.postMessage({ type: 'INIT_DATA', data: DataCache.weekly });
+        const weeklyData = await loadAndParse('weekly_aggregated.csv');
+        DataCache.weekly = weeklyData;
         
-        // 2. Background: Monthly (Doesn't block the UI)
-        loadMonthlyInBackground();
+        console.log("Weekly Parsed. Rows:", weeklyData.length);
+        
+        // Initialize Worker with Weekly
+        worker.postMessage({ type: 'INIT_DATA', data: weeklyData });
         
     } catch (err) {
-        document.getElementById('load-text').innerHTML = 
-            `<span style="color:var(--danger)">Load Failed. Check CSV files.</span>`;
+        console.error("Weekly Load Failed:", err);
+        updateLoader("Weekly Data missing. Waiting for Monthly...");
     }
+
+    // 2. Start Background Monthly Load
+    loadMonthlyFiles();
 };
 
-async function loadMonthlyInBackground() {
+async function loadMonthlyFiles() {
     const files = [
         '2026-01_aggregated.csv', '2026-02_aggregated.csv', 
         '2026-03_aggregated.csv', '2026-04_aggregated.csv'
     ];
+    
     try {
         const results = await Promise.all(files.map(f => loadAndParse(f)));
         DataCache.monthly = results.flat();
-        document.getElementById('btn-monthly').classList.remove('disabled');
-        console.log("Monthly Data Cached.");
+        
+        console.log("Monthly Data Loaded. Rows:", DataCache.monthly.length);
+        
+        // Enable Monthly button in UI
+        const optMo = document.getElementById('btn-monthly');
+        if(optMo) {
+            optMo.disabled = false;
+            optMo.style.opacity = "1";
+        }
+
+        // If Weekly failed, automatically show Monthly instead of staying stuck
+        if (!DataCache.weekly) {
+            switchHorizon('monthly');
+        }
     } catch (e) {
-        console.error("Monthly background load failed", e);
+        console.error("Monthly Load Failed:", e);
     }
 }
 
 async function loadAndParse(url) {
     const res = await fetch(url);
+    if (!res.ok) throw new Error(`File not found: ${url}`);
+    
     const text = await res.text();
     const rows = text.split('\n').filter(r => r.trim());
     const h = rows[0].toLowerCase().split(',');
 
-    // Map indices dynamically (Weekly and Monthly are different)
+    // DYNAMIC MAPPING: This is key because your Weekly and Monthly column orders differ
     const map = {
         time: h.findIndex(x => x.includes('week') || x.includes('month')),
         bu: h.indexOf('bu'),
@@ -177,21 +196,9 @@ async function loadAndParse(url) {
     });
 }
 
-function switchHorizon(val) {
-    if (val === 'monthly' && !DataCache.monthly) {
-        alert("Monthly data is still downloading...");
-        return;
-    }
-    currentHorizon = val;
-    document.querySelectorAll('.h-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(`btn-${val}`).classList.add('active');
-    
-    document.getElementById('loader').style.display = 'flex';
-    worker.postMessage({ type: 'INIT_DATA', data: DataCache[val] });
-}
-
 function updateLoader(msg) {
-    document.getElementById('load-text').innerText = msg;
+    const el = document.getElementById('load-text');
+    if(el) el.innerText = msg;
 }
 </script>
 </body>
