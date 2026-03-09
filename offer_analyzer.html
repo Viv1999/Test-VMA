@@ -34,6 +34,16 @@
 
         .h-btn { flex: 1; border: none; background: #1e293b; color: #94a3b8; padding: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 4px; }
         .h-btn.active { background: var(--accent); color: white; }
+        /* Add to <style> in offer_analyzer.html */
+.line-sim {
+    transition: all 0.5s ease;
+}
+.kpi-val {
+    transition: color 0.3s ease;
+}
+circle {
+    transition: cy 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
     </style>
 </head>
 <body>
@@ -200,17 +210,71 @@
         });
     }
 
-    function renderChart(base, sim) {
-        const svg = document.getElementById('chart'), w = svg.clientWidth, h = 350, m = 60, k = document.getElementById('m-select').value;
-        const getX = (i) => m + (i * (w - m * 2) / (base.length - 1 || 1));
-        const getY = (v) => (h - 80) - (v * (h - 180) / 100);
-        let html = `<line x1="${m}" y1="${h-80}" x2="${w-m}" y2="${h-80}" stroke="var(--border)" />`;
-        html += `<polyline class="line-base" points="${base.map((d,i) => `${getX(i)},${getY(d[k])}`).join(' ')}" />`;
-        html += `<polyline class="line-sim" points="${sim.map((d,i) => `${getX(i)},${getY(d[k])}`).join(' ')}" />`;
-        sim.forEach((d, i) => html += `<text x="${getX(i)}" y="${h-30}" text-anchor="middle" font-size="10" fill="var(--muted)">${timeLabels[i]}</text><circle cx="${getX(i)}" cy="${getY(d[k])}" r="4" fill="var(--accent)" stroke="white" stroke-width="2" />`);
-        svg.innerHTML = html;
-    }
+function renderChart(base, sim) {
+    const svg = document.getElementById('chart'), w = svg.clientWidth, h = 350, m = 60;
+    const key = document.getElementById('m-select').value;
+    
+    // 1. DYNAMIC SCALING LOGIC
+    const allVals = [...base.map(d => d[key]), ...sim.map(d => d[key])];
+    let min = Math.min(...allVals);
+    let max = Math.max(...allVals);
+    const padding = (max - min) * 0.15 || 2; // 15% padding
+    const yMin = Math.max(0, min - padding);
+    const yMax = max + padding;
 
+    const getX = (i) => m + (i * (w - m * 2) / (base.length - 1 || 1));
+    const getY = (v) => (h - 80) - ((v - yMin) * (h - 140) / (yMax - yMin || 1));
+
+    // 2. SHADED IMPACT ZONE (The area between lines)
+    let areaPath = `M ${getX(0)} ${getY(base[0][key])} `;
+    for(let i=1; i<base.length; i++) areaPath += `L ${getX(i)} ${getY(base[i][key])} `;
+    for(let i=base.length-1; i>=0; i--) areaPath += `L ${getX(i)} ${getY(sim[i][key])} `;
+    areaPath += "Z";
+
+    let html = `
+        <path d="${areaPath}" fill="${sim[3][key] >= base[3][key] ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'}" />
+        <line x1="${m}" y1="${h-80}" x2="${w-m}" y2="${h-80}" stroke="var(--border)" stroke-width="2" />
+    `;
+
+    // 3. DRAW LINES
+    const bPts = base.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
+    const sPts = sim.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
+    html += `<polyline class="line-base" points="${bPts}" />`;
+    html += `<polyline class="line-sim" points="${sPts}" />`;
+
+    // 4. DATA LABELS AND POINTS
+    sim.forEach((d, i) => {
+        const x = getX(i), yS = getY(d[key]), yB = getY(base[i][key]);
+        const delta = d[key] - base[i][key];
+
+        // Baseline Dot
+        html += `<circle cx="${x}" cy="${yB}" r="3" fill="var(--muted)" />`;
+        
+        // Simulated Dot
+        html += `<circle cx="${x}" cy="${yS}" r="6" fill="var(--accent)" stroke="white" stroke-width="2" />`;
+
+        // Value Labels (Top)
+        html += `
+            <text x="${x}" y="${yS - 15}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--primary)">
+                ${d[key].toFixed(1)}%
+            </text>
+        `;
+
+        // Delta Callout (Only show if there is a significant difference)
+        if (Math.abs(delta) > 0.01) {
+            html += `
+                <text x="${x}" y="${yS + 20}" text-anchor="middle" font-size="10" font-weight="800" fill="${delta >= 0 ? 'var(--baseline)' : 'var(--danger)'}">
+                    ${delta > 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(2)}%
+                </text>
+            `;
+        }
+
+        // X-Axis Labels
+        html += `<text x="${x}" y="${h-30}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">${timeLabels[i]}</text>`;
+    });
+
+    svg.innerHTML = html;
+}
     function renderTable(base, idx) {
         const k = document.getElementById('m-select').value, curr = base[idx], prev = base[idx-1];
         if (!curr || !prev) return;
