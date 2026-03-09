@@ -110,17 +110,18 @@
 
     // 1. DATA PIPELINE CONNECTION
     // This is the "bridge" to the parent Portal page
-    function connectToPipeline() {
-        const state = window.parent.DashboardState || window.DashboardState;
-        
-        if (state && state[currentHorizon].loaded) {
-            document.getElementById('load-text').innerText = `Injecting ${currentHorizon} data...`;
-            worker.postMessage({ type: 'INIT_DATA', data: state[currentHorizon].data });
-        } else {
-            // If data isn't ready, poll every 500ms
-            setTimeout(connectToPipeline, 500);
-        }
+function connectToPipeline() {
+    // Look in current window OR parent window
+    const state = window.DashboardState || (window.parent && window.parent.DashboardState);
+    
+    if (state && state[currentHorizon].loaded) {
+        console.log("Pipeline Connected!");
+        worker.postMessage({ type: 'INIT_DATA', data: state[currentHorizon].data });
+    } else {
+        // Keep checking every 500ms
+        setTimeout(connectToPipeline, 500);
     }
+}
 
     worker.onmessage = (e) => {
         const { type, filters, base, impact, timeMap } = e.data;

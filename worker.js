@@ -73,12 +73,18 @@ function calculate(exclOff, f, metricKey) {
         });
     }
 
-    return periods.map(p => {
-        const hTotal = Array.from(p.handledPool.values()).reduce((a, b) => a + b, 0);
-        return {
-            eligRate: (p.elig/hTotal)*100||0, offRate: (p.ext/p.elig)*100||0,
-            accRate: (p.acc/p.elig)*100||0, convRate: (p.acc/p.ext)*100||0,
-            h: hTotal, elig: p.elig, ext: p.ext, acc: p.acc, offerStats: p.offerStats
-        };
-    });
+    // Inside worker.js calculateTrend function:
+return periods.map(p => {
+    // Total handled pool is the sum of unique calls_handled per category
+    const handled = Array.from(p.handledPool.values()).reduce((a, b) => a + b, 0);
+    
+    return { 
+        eligRate: (p.pres / handled) * 100 || 0,        // Eligibility
+        offRate:  (p.ext / p.pres) * 100 || 0,         // Offer Rate
+        accRate:  (p.acc / p.pres) * 100 || 0,         // Accept Rate
+        convRate: (p.acc / p.ext) * 100 || 0,          // Conversion
+        offerStats: p.offerStats,
+        h: handled
+    };
+});
 }
