@@ -1,4 +1,4 @@
-/** worker.js - v2.9 Dual Aggregation & Fuzzy Mapping **/
+/** worker.js - v3.0 Perfect Additive Attribution **/
 const MAX_ROWS = 1000000;
 const timeCol = new Uint32Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -102,7 +102,8 @@ function calculate(exclOff, exclTypes, f, metricKey) {
         return { 
             eligRate: (p.pres/h)*100||0, offRate: (p.ext/p.pres)*100||0, 
             accRate: (p.acc/p.pres)*100||0, convRate: (p.acc/p.ext)*100||0, 
-            h, offerStats: p.offerStats, typeStats: p.typeStats 
+            pres: p.pres, ext: p.ext, h, 
+            offerStats: p.offerStats, typeStats: p.typeStats 
         };
     });
 }
