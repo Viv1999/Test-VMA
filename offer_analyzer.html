@@ -33,7 +33,7 @@
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Restoring View...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Assembling Dashboard...</div></div>
 
 <aside class="sidebar">
     <h1>VG Optimizer</h1>
@@ -138,7 +138,7 @@
         const types = [...new Set(f.offers.map(o => o.split('-')[0].trim()))].sort();
         fill('f-type-list', types, 'type');
 
-        // REVERSED "Latest vs Prev" Dropdown
+        // DYNAMIC LATEST vs PREV Default Selection
         const pS = document.getElementById('period-select');
         const options = timeLabels.map((d, i) => {
             if (i === 0) return null;
