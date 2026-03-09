@@ -2,59 +2,96 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>VG Optimizer | Offer-Level</title>
+    <title>VG Optimizer | Offer-Level Analysis</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary: #0f172a; --accent: #3b82f6; --baseline: #10b981; --danger: #ef4444; --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0; --text: #1e293b; --muted: #64748b; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); display: grid; grid-template-columns: 320px 1fr; height: 100vh; overflow: hidden; }
+
         .sidebar { background: var(--primary); color: white; padding: 25px; overflow-y: auto; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px; }
+        .sidebar h1 { font-size: 18px; font-weight: 700; color: white; }
         .filter-group { width: 100%; display: flex; flex-direction: column; }
         .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
         .multi-box { background: #1e293b; border-radius: 6px; height: 110px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
         .item-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; color: #cbd5e1; cursor: pointer; }
-        select, .search-input { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; }
+        select, .search-input { background: #1e293b; color: #ffffff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; }
+        
         .main-container { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
         .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
         svg { width: 100%; height: 350px; overflow: visible; }
         .line-base { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4; }
         .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+        
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--border); }
         td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
         .driver-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+        
         #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
         .h-btn { flex: 1; border: none; background: #1e293b; color: #94a3b8; padding: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 4px; }
         .h-btn.active { background: var(--accent); color: white; }
     </style>
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Fetching Weekly Data...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Initializing Dashboard...</div></div>
 
 <aside class="sidebar">
-    <h1>VG Optimizer</h1>
+    <header><h1>VG Optimizer</h1><p style="font-size: 10px; color: #64748b;">VERSION 2.7 SCALED</p></header>
+    
     <div style="display:flex; gap:4px; margin-bottom:10px;">
         <button class="h-btn active" id="btn-weekly" onclick="switchHorizon('weekly')">Weekly</button>
         <button class="h-btn" id="btn-monthly" onclick="switchHorizon('monthly')">Monthly</button>
     </div>
-    <div class="filter-group"><label class="filter-label">Metric</label><select id="m-select" onchange="update()"><option value="eligRate">Eligibility %</option><option value="offRate">Offer Rate %</option><option value="accRate">Accept Rate %</option><option value="convRate">Conversion %</option></select></div>
-    <div class="filter-group"><label class="filter-label">BU</label><select id="f-bu" onchange="update()"></select></div>
+
+    <div class="filter-group">
+        <label class="filter-label">Metric View</label>
+        <select id="m-select" onchange="update()">
+            <option value="eligRate">Eligibility %</option>
+            <option value="offRate">Offer Rate %</option>
+            <option value="accRate">Accept Rate %</option>
+            <option value="convRate">Conversion %</option>
+        </select>
+    </div>
+
+    <div class="filter-group"><label class="filter-label">Business Unit</label><select id="f-bu" onchange="update()"></select></div>
     <div class="filter-group"><label class="filter-label">Tiers</label><div id="f-tier-list" class="multi-box"></div></div>
     <div class="filter-group"><label class="filter-label">Sites</label><div id="f-site-list" class="multi-box"></div></div>
-    <div class="filter-group"><label class="filter-label">Exclude Offers</label><input type="text" id="off-search" class="search-input" oninput="filterOffers()"><div id="f-offer-list" class="multi-box" style="height:150px"></div></div>
+    <div class="filter-group">
+        <label class="filter-label">Exclude Offers</label>
+        <input type="text" id="off-search" class="search-input" placeholder="Search..." oninput="filterOffers()">
+        <div id="f-offer-list" class="multi-box" style="height: 150px; margin-top:8px;"></div>
+    </div>
 </aside>
 
 <main class="main-container">
-    <div class="card"><svg id="chart"></svg></div>
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="margin:0; font-size:18px; font-weight:700;">Performance Trend</h2>
+            <div style="font-size:12px; font-weight:700;"><span style="color:var(--muted)">━ Baseline</span> &nbsp; <span style="color:var(--accent)">━ Simulated</span></div>
+        </div>
+        <svg id="chart"></svg>
+    </div>
+
     <div class="driver-grid">
         <div class="card">
-            <div style="display:flex; justify-content:space-between; margin-bottom:15px;"><h3 id="pop-title" style="margin:0; font-size:15px;">Drivers</h3><select id="period-select" onchange="update()"></select></div>
-            <table id="pop-table"><thead><tr><th>Segment</th><th>Bar</th><th>Pts</th></tr></thead><tbody></tbody></table>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:15px;">Growth Drivers</h3>
+                <select id="period-select" style="width:auto; background:white; border:1px solid var(--border); padding:4px;" onchange="update()"></select>
+            </div>
+            <table id="pop-table">
+                <thead><tr><th>Segment</th><th>Impact Bar</th><th>Pts</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
-        <div class="card" style="text-align:center"><label class="filter-label">Simulation Shift</label><div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div></div>
+        <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center;">
+            <label class="filter-label">Simulation Shift</label>
+            <div id="total-delta" style="font-size:42px; font-weight:800; color:var(--accent);">0.00%</div>
+        </div>
     </div>
 </main>
 
@@ -63,35 +100,56 @@
     const DataCache = { weekly: null, monthly: null };
     let timeLabels = [], currentHorizon = 'weekly';
 
+    // Start loading data immediately on window load
     window.onload = async () => {
         try {
+            updateLoader("Fetching Weekly Data...");
             DataCache.weekly = await loadAndParse('weekly_aggregated.csv');
             worker.postMessage({ type: 'INIT_DATA', data: DataCache.weekly });
-            loadMonthly();
-        } catch (e) { document.getElementById('load-text').innerText = "Load Failed"; }
+            loadMonthlyInBackground();
+        } catch (e) {
+            updateLoader("Critical Error: CSV not found.");
+        }
     };
 
-    async function loadMonthly() {
+    async function loadMonthlyInBackground() {
         const files = ['2026-01_aggregated.csv', '2026-02_aggregated.csv', '2026-03_aggregated.csv', '2026-04_aggregated.csv'];
-        const results = await Promise.all(files.map(f => loadAndParse(f)));
-        DataCache.monthly = results.flat();
-        console.log("Monthly Cached");
+        try {
+            const results = await Promise.all(files.map(f => loadAndParse(f)));
+            DataCache.monthly = results.flat();
+            console.log("Monthly Data Ready");
+        } catch (e) { console.error("Monthly Load Failed", e); }
     }
 
     async function loadAndParse(url) {
         const res = await fetch(url);
         const text = await res.text();
         const rows = text.split('\n').filter(r => r.trim());
-        const h = rows[0].toLowerCase().split(',');
+        const h = rows[0].toLowerCase().split(',').map(name => name.trim());
+
+        // Fuzzy Mapping to handle variants like 'ca' vs 'calls' or 'week_sta' vs 'week_start'
+        const findCol = (targets) => h.findIndex(col => targets.some(t => col.startsWith(t)));
+
         const map = {
-            time: h.findIndex(x => x.includes('week') || x.includes('month')),
-            bu: h.indexOf('bu'), tier: h.indexOf('tier'), site: h.indexOf('site'),
-            handled: h.indexOf('calls_handle'), pres: h.indexOf('offers_present'),
-            ext: h.indexOf('offers_extended'), acc: h.indexOf('offers_accepted'), count: h.indexOf('ca')
+            time: findCol(['week_sta', 'week_start', 'month']),
+            bu: h.indexOf('bu'),
+            tier: h.indexOf('tier'),
+            site: h.indexOf('site'),
+            handled: findCol(['calls_handle', 'calls_handled']),
+            pres: h.indexOf('offers_present'),
+            ext: h.indexOf('offers_extended'),
+            acc: h.indexOf('offers_accepted'),
+            count: findCol(['ca', 'calls'])
         };
+
         return rows.slice(1).map(r => {
             const c = r.split(',');
-            return { time: c[map.time], bu: c[map.bu], tier: c[map.tier], site: c[map.site], handled: parseInt(c[map.handled])||0, pres: c[map.pres]||"", ext: c[map.ext]||"", acc: c[map.acc]||"", count: parseInt(c[map.count])||0 };
+            return {
+                time: c[map.time], bu: c[map.bu], tier: c[map.tier], site: c[map.site],
+                handled: parseInt(c[map.handled]) || 0,
+                pres: c[map.pres] || "", ext: c[map.ext] || "", acc: c[map.acc] || "",
+                count: parseInt(c[map.count]) || 0
+            };
         });
     }
 
@@ -106,29 +164,40 @@
         if (type === 'DONE') {
             document.getElementById('loader').style.display = 'none';
             renderChart(base, impact);
-            renderTable(base, parseInt(document.getElementById('period-select').value)||1);
+            renderTable(base, parseInt(document.getElementById('period-select').value) || 1);
         }
     };
 
-    function switchHorizon(v) {
-        if(!DataCache[v]) return alert("Still loading...");
-        currentHorizon = v;
-        document.querySelectorAll('.h-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${v}`));
+    function switchHorizon(val) {
+        if (!DataCache[val]) return alert("Data still loading...");
+        currentHorizon = val;
+        document.querySelectorAll('.h-btn').forEach(b => b.classList.toggle('active', b.id === `btn-${val}`));
         document.getElementById('loader').style.display = 'flex';
-        worker.postMessage({ type: 'INIT_DATA', data: DataCache[v] });
+        worker.postMessage({ type: 'INIT_DATA', data: DataCache[val] });
     }
 
     function setupFilters(f) {
         document.getElementById('f-bu').innerHTML = f.bus.map(v => `<option value="${v}">${v}</option>`).join('');
-        const fill = (id, items, cls) => document.getElementById(id).innerHTML = items.map(v => `<label class="item-row"><input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"><span>${v}</span></label>`).join('');
-        fill('f-tier-list', f.tiers, 'tier'); fill('f-site-list', f.sites, 'site'); fill('f-offer-list', f.offers, 'off');
+        const fill = (id, items, cls) => {
+            document.getElementById(id).innerHTML = items.map(v => `
+                <label class="item-row"><input type="checkbox" checked class="${cls}-cb" value="${v}" onchange="update()"><span>${v}</span></label>
+            `).join('');
+        };
+        fill('f-tier-list', f.tiers, 'tier');
+        fill('f-site-list', f.sites, 'site');
+        fill('f-offer-list', f.offers, 'off');
         document.getElementById('period-select').innerHTML = timeLabels.map((d, i) => i > 0 ? `<option value="${i}">${timeLabels[i-1]} → ${d}</option>` : '').join('');
     }
 
     function update() {
         document.getElementById('loader').style.display = 'flex';
         const getCheck = (cls, bool) => Array.from(document.querySelectorAll(`.${cls}-cb${bool?':checked':':not(:checked)'}`)).map(c => c.value);
-        worker.postMessage({ type: 'PROCESS', metricKey: document.getElementById('m-select').value, filters: { bu: document.getElementById('f-bu').value, sites: getCheck('site', true), tiers: getCheck('tier', true) }, exclOff: getCheck('off', false) });
+        worker.postMessage({
+            type: 'PROCESS',
+            metricKey: document.getElementById('m-select').value,
+            filters: { bu: document.getElementById('f-bu').value, sites: getCheck('site', true), tiers: getCheck('tier', true) },
+            exclOff: getCheck('off', false)
+        });
     }
 
     function renderChart(base, sim) {
@@ -144,7 +213,7 @@
 
     function renderTable(base, idx) {
         const k = document.getElementById('m-select').value, curr = base[idx], prev = base[idx-1];
-        if(!curr || !prev) return;
+        if (!curr || !prev) return;
         const totalDelta = curr[k] - prev[k];
         document.getElementById('total-delta').innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
         const drivers = Object.keys(curr.offerStats).map(off => {
@@ -158,6 +227,8 @@
         const q = document.getElementById('off-search').value.toLowerCase();
         document.querySelectorAll('#f-offer-list .item-row').forEach(row => row.style.display = row.innerText.toLowerCase().includes(q) ? 'flex' : 'none');
     }
+
+    function updateLoader(msg) { document.getElementById('load-text').innerText = msg; }
 </script>
 </body>
 </html>
