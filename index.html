@@ -5,7 +5,6 @@
     <title>VG Metric Analyzer | Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        /* Shared Palette from Dashboard */
         :root { 
             --primary: #0f172a; 
             --accent: #3b82f6; 
@@ -33,13 +32,10 @@
 
         .container { max-width: 1000px; width: 90%; padding: 40px; }
 
-        /* Header Section */
         header { text-align: center; margin-bottom: 60px; }
         h1 { font-size: 3.5rem; font-weight: 800; color: var(--primary); letter-spacing: -0.02em; margin-bottom: 15px; }
-        .badge { background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; vertical-align: middle; margin-left: 10px; font-weight: 600; }
         .subtitle { font-size: 1.1rem; color: var(--muted); max-width: 600px; margin: 0 auto; line-height: 1.6; }
 
-        /* Grid Layout */
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
         
         .section-card { 
@@ -54,12 +50,45 @@
         }
         .section-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
 
-        h2 { font-size: 1.5rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        h2 { font-size: 1.5rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
         h2::before { content: ''; width: 4px; height: 24px; background: var(--accent); border-radius: 2px; }
 
         p { color: var(--muted); line-height: 1.7; margin-bottom: 30px; font-size: 0.95rem; flex-grow: 1; }
 
-        /* Buttons */
+        /* Beautified Horizon Picker */
+        .horizon-picker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            width: fit-content;
+        }
+
+        .picker-label {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        #split-horizon-toggle {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            outline: none;
+        }
+
+        #split-horizon-toggle:hover { color: var(--accent); }
+
         .btn { 
             display: block; 
             width: 100%;
@@ -89,7 +118,6 @@
         }
         .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
 
-        /* Footer Decoration */
         footer { margin-top: 50px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
@@ -108,22 +136,29 @@
             <a href="offer_analyzer.html" class="btn">Offer-Level Dashboard</a>
         </div>
 
-<div class="section-card">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-        <h2>Call Category Level</h2>
-        <select id="split-horizon-toggle" onchange="updateSplitLinks()" style="width:auto; padding:6px; border-radius:4px; border:1px solid var(--border); font-family: 'Inter'; font-weight: 600; font-size: 12px; color: var(--primary);">
-            <option value="weekly">Weekly View</option>
-            <option value="monthly">Monthly View</option>
-        </select>
+        <div class="section-card">
+            <h2>Call Category Level</h2>
+            
+            <div class="horizon-picker">
+                <span class="picker-label">Horizon:</span>
+                <select id="split-horizon-toggle" onchange="updateSplitLinks()">
+                    <option value="weekly">Weekly View</option>
+                    <option value="monthly">Monthly View</option>
+                </select>
+            </div>
+
+            <p>Created using <strong>Metric SPLIT</strong> tool, Includes Mix-Rate Analysis tree providing high customization flexibility to investigate impact of categories on Period on Period metric change.</p>
+            
+            <div class="split-grid">
+                <a href="eligibility_split.html" id="link-elig" class="btn btn-outline">Eligibility%</a>
+                <a href="offer_rate_split.html" id="link-offer" class="btn btn-outline">Offer Rate%</a>
+                <a href="accept_rate_split.html" id="link-accept" class="btn btn-outline">Accept Rate%</a>
+                <a href="conversion_split.html" id="link-conv" class="btn btn-outline">Conversion%</a>
+            </div>
+        </div>
     </div>
-    <p>Created using <strong>Metric SPLIT</strong> tool. Includes Mix-Rate Analysis trees providing high customization flexibility to investigate impact of categories on Period-on-Period metric change.</p>
-    
-    <div class="split-grid">
-        <a href="eligibility_split.html" id="link-elig" class="btn btn-outline">Eligibility%</a>
-        <a href="offer_rate_split.html" id="link-offer" class="btn btn-outline">Offer Rate%</a>
-        <a href="accept_rate_split.html" id="link-accept" class="btn btn-outline">Accept Rate%</a>
-        <a href="conversion_split.html" id="link-conv" class="btn btn-outline">Conversion%</a>
-    </div>
+
+    <footer>The metrics in this dashboard are to be considered directional and to be used only for analytical use cases. Please refer to nvision dashboards for official reporting</footer>
 </div>
 
 <script>
@@ -135,24 +170,12 @@
             accept: document.getElementById('link-accept'),
             conv: document.getElementById('link-conv')
         };
-
-        if (horizon === 'monthly') {
-            // Point to monthly versions of the split files
-            links.elig.href = "eligibility_split_monthly.html";
-            links.offer.href = "offer_rate_split_monthly.html";
-            links.accept.href = "accept_rate_split_monthly.html";
-            links.conv.href = "conversion_split_monthly.html";
-        } else {
-            // Default to weekly versions
-            links.elig.href = "eligibility_split.html";
-            links.offer.href = "offer_rate_split.html";
-            links.accept.href = "accept_rate_split.html";
-            links.conv.href = "conversion_split.html";
-        }
+        const suffix = (horizon === 'monthly') ? '_monthly.html' : '.html';
+        links.elig.href = "eligibility_split" + suffix;
+        links.offer.href = "offer_rate_split" + suffix;
+        links.accept.href = "accept_rate_split" + suffix;
+        links.conv.href = "conversion_split" + suffix;
     }
 </script>
-    <footer>The metrics in this dashboard are to be considered directional and to be used only for analytical use cases. Please refer to nvision dashboards for official reporting</footer>
-</div>
-<script src="app-controller.js"></script>
 </body>
 </html>
