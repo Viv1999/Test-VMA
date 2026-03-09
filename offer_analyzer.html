@@ -13,17 +13,30 @@
         .filter-label { font-size: 11px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; }
         .multi-box { background: #1e293b; border-radius: 6px; height: 100px; overflow-y: auto; padding: 10px; border: 1px solid #334155; }
         .item-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 12px; color: #cbd5e1; cursor: pointer; }
+        
+        /* Dropdown Visibility Fixes */
         select, .search-input { background: #1e293b; color: #fff; border: 1px solid #334155; padding: 10px; border-radius: 4px; width: 100%; font-size: 12px; }
         #period-select, #driver-view-toggle { color: #000000 !important; background-color: #ffffff !important; font-weight: 600; cursor: pointer; border: 1px solid var(--border); }
+
         .main-container { padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
-        .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 25px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; }
         svg { width: 100%; height: 350px; overflow: visible; }
-        .line-base { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4; }
-        .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; }
+        .line-base { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4; pointer-events: none; }
+        .line-sim { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; pointer-events: none; }
+        
+        /* TOOLTIP STYLES */
+        #chart-tooltip {
+            position: absolute; background: rgba(15, 23, 42, 0.95); color: white;
+            padding: 10px; border-radius: 8px; font-size: 11px; pointer-events: none;
+            display: none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index: 100;
+            border: 1px solid #334155; min-width: 140px;
+        }
+
         .driver-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 10px; font-size: 11px; color: var(--muted); border-bottom: 2px solid var(--border); }
         td { padding: 12px 10px; border-bottom: 1px solid var(--border); font-size: 13px; }
+
         #loader { position: fixed; inset: 0; background: var(--primary); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -33,7 +46,8 @@
 </head>
 <body>
 
-<div id="loader"><div class="spinner"></div><div id="load-text">Assembling Intelligence...</div></div>
+<div id="loader"><div class="spinner"></div><div id="load-text">Rendering Engine...</div></div>
+<div id="chart-tooltip"></div>
 
 <aside class="sidebar">
     <h1>VG Optimizer</h1>
@@ -72,7 +86,7 @@
 <script>
     const worker = new Worker('worker.js');
     const DataCache = { weekly: null, monthly: null };
-    let timeLabels = [], currentHorizon = 'weekly', lastCalculatedBase = null;
+    let timeLabels = [], currentHorizon = 'weekly', lastCalculatedBase = null, lastCalculatedSim = null;
 
     window.onload = async () => {
         try {
@@ -118,6 +132,7 @@
         if (type === 'DONE') {
             document.getElementById('loader').style.display = 'none';
             lastCalculatedBase = base;
+            lastCalculatedSim = impact;
             renderChart(base, impact);
             renderTableFromCache();
         }
@@ -162,18 +177,45 @@
                  <line x1="${w-150}" y1="40" x2="${w-130}" y2="40" stroke="var(--accent)" stroke-width="4" />
                  <text x="${w-120}" y="45" font-size="11" fill="var(--muted)">Simulated</text>`;
 
-        html += `<polyline class="line-base" points="${base.map((d,i)=>`${getX(i)},${getY(d[k])}`).join(' ')}" fill="none" />`;
-        html += `<polyline class="line-sim" points="${sim.map((d,i)=>`${getX(i)},${getY(d[k])}`).join(' ')}" fill="none" />`;
+        html += `<polyline class="line-base" points="${base.map((d,i)=>`${getX(i)},${getY(d[k])}`).join(' ')}" />`;
+        html += `<polyline class="line-sim" points="${sim.map((d,i)=>`${getX(i)},${getY(d[k])}`).join(' ')}" />`;
 
         sim.forEach((d, i) => {
-            const x = getX(i), y = getY(d[k]), delta = d[k] - base[i][k];
-            html += `<circle cx="${x}" cy="${y}" r="6" fill="var(--accent)" stroke="white" stroke-width="2" />`;
-            html += `<text x="${x}" y="${y-15}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--primary)">${d[k].toFixed(1)}%</text>`;
-            if(Math.abs(delta) > 0.01) html += `<text x="${x}" y="${y+20}" text-anchor="middle" font-size="10" font-weight="800" fill="${delta > 0 ? 'var(--baseline)' : 'var(--danger)'}">${delta > 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(2)}%</text>`;
-            html += `<text x="${x}" y="${h-30}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)">${timeLabels[i]}</text>`;
+            const x = getX(i), y = getY(d[k]), bV = base[i][k], delta = d[k] - bV;
+            
+            // Hidden interactive circle for hit detection
+            html += `<circle cx="${x}" cy="${y}" r="20" fill="transparent" style="cursor:pointer" 
+                      onmouseenter="showTooltip(event, ${i})" onmouseleave="hideTooltip()" />`;
+            
+            html += `<circle cx="${x}" cy="${y}" r="6" fill="var(--accent)" stroke="white" stroke-width="2" pointer-events="none" />`;
+            html += `<text x="${x}" y="${y-15}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--primary)" pointer-events="none">${d[k].toFixed(1)}%</text>`;
+            if(Math.abs(delta) > 0.01) html += `<text x="${x}" y="${y+20}" text-anchor="middle" font-size="10" font-weight="800" fill="${delta > 0 ? 'var(--baseline)' : 'var(--danger)'}" pointer-events="none">${delta > 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(2)}%</text>`;
+            html += `<text x="${x}" y="${h-30}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--muted)" pointer-events="none">${timeLabels[i]}</text>`;
         });
         svg.innerHTML = html;
     }
+
+    function showTooltip(e, idx) {
+        const k = document.getElementById('m-select').value;
+        const tooltip = document.getElementById('chart-tooltip');
+        const bVal = lastCalculatedBase[idx][k].toFixed(2);
+        const sVal = lastCalculatedSim[idx][k].toFixed(2);
+        const delta = (sVal - bVal).toFixed(2);
+
+        tooltip.innerHTML = `
+            <div style="font-weight:700; border-bottom:1px solid #334155; padding-bottom:4px; margin-bottom:4px;">${timeLabels[idx]}</div>
+            <div style="display:flex; justify-content:space-between; gap:20px;"><span>Baseline:</span> <span>${bVal}%</span></div>
+            <div style="display:flex; justify-content:space-between; gap:20px;"><span>Simulated:</span> <span style="color:var(--accent)">${sVal}%</span></div>
+            <div style="display:flex; justify-content:space-between; gap:20px; border-top:1px solid #334155; margin-top:4px; padding-top:4px;">
+                <span>Impact:</span> <span style="color:${delta >= 0 ? 'var(--baseline)' : 'var(--danger)'}">${delta > 0 ? '+' : ''}${delta}%</span>
+            </div>
+        `;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (e.pageX + 15) + 'px';
+        tooltip.style.top = (e.pageY - 20) + 'px';
+    }
+
+    function hideTooltip() { document.getElementById('chart-tooltip').style.display = 'none'; }
 
     function renderTableFromCache() {
         const idx = parseInt(document.getElementById('period-select').value) || 1;

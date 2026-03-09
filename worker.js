@@ -1,4 +1,4 @@
-/** worker.js - v3.1 Perfect Additive Attribution **/
+/** worker.js - v3.2 Dual Aggregation & Attribution **/
 const MAX_ROWS = 1000000;
 const timeCol = new Uint32Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -66,7 +66,6 @@ function calculate(exclOff, exclTypes, f, metricKey) {
         if (!p.hPool.has(poolKey)) p.hPool.set(poolKey, handledCol[i]);
 
         const isExcl = (o) => exclOff.includes(o) || typeExclSet.has(o.split('-')[0].trim());
-
         const rP = presData[i].split('|').filter(o => o && !isExcl(o));
         const rE = extData[i].split('|').filter(o => o && !isExcl(o));
         const rA = accData[i].split('|').filter(o => o && !isExcl(o));
