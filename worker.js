@@ -1,4 +1,4 @@
-/** worker.js - v3.1 Perfect Additive Attribution **/
+/** worker.js - v3.2 Dual Aggregation & Attribution **/
 const MAX_ROWS = 1000000;
 const timeCol = new Uint32Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
