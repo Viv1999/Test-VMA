@@ -7,30 +7,49 @@ const presData = new Array(MAX_ROWS), extData = new Array(MAX_ROWS), accData = n
 
 let timeMap = [], buMap = [], tierMap = [], siteMap = [], rowCount = 0;
 
+// Inside worker.js
 self.onmessage = (e) => {
-    const { type, data, filters, exclOff, metricKey } = e.data;
+    try {
+        const { type, data } = e.data;
+        if (type === 'INIT_DATA') {
+            console.log("Worker: Starting to process " + data.length + " rows");
+            
+            // RESET rowCount to avoid overflow on re-loads
+            rowCount = 0; 
 
-    if (type === 'INIT_DATA') {
-        rowCount = 0; timeMap = []; buMap = []; tierMap = []; siteMap = [];
-        const getIdx = (v, m) => { let i = m.indexOf(v); if (i === -1) { m.push(v); return m.length - 1; } return i; };
-        data.forEach(row => {
-            timeCol[rowCount] = getIdx(row.time, timeMap);
-            buCol[rowCount] = getIdx(row.bu, buMap);
-            tierCol[rowCount] = getIdx(row.tier, tierMap);
-            siteCol[rowCount] = getIdx(row.site, siteMap);
-            handledCol[rowCount] = row.handled; countCol[rowCount] = row.count;
-            presData[rowCount] = row.pres; extData[rowCount] = row.ext; accData[rowCount] = row.acc;
-            rowCount++;
-        });
-        const offers = new Set();
-        data.forEach(r => r.pres && r.pres.split('|').forEach(o => offers.add(o.trim())));
-        self.postMessage({ type: 'READY', timeMap, filters: { bus: buMap, tiers: tierMap, sites: siteMap, offers: Array.from(offers).sort() } });
-    }
+            for (let i = 0; i < data.length; i++) {
+                const row = data[i];
+                if (!row) continue;
 
-    if (type === 'PROCESS') {
-        const baseTrend = calculate( [], filters, metricKey);
-        const simTrend = calculate(exclOff, filters, metricKey);
-        self.postMessage({ type: 'DONE', base: baseTrend, impact: simTrend });
+                // PROTECTIVE MAPPING
+                timeCol[rowCount] = getIdx(row.time || "Unknown", timeMap);
+                buCol[rowCount] = getIdx(row.bu || "Unknown", buMap);
+                tierCol[rowCount] = getIdx(row.tier || "Unknown", tierMap);
+                siteCol[rowCount] = getIdx(row.site || "Unknown", siteMap);
+                
+                handledCol[rowCount] = Number(row.handled) || 0;
+                countCol[rowCount] = Number(row.count) || 0;
+                
+                // Ensure strings exist before splitting
+                presData[rowCount] = String(row.pres || "");
+                extData[rowCount] = String(row.ext || "");
+                accData[rowCount] = String(row.acc || "");
+                
+                rowCount++;
+            }
+            
+            console.log("Worker: Mapping Complete. RowCount: " + rowCount);
+
+            // Signal the UI to hide the loader
+            self.postMessage({ 
+                type: 'READY', 
+                timeMap: timeMap, 
+                filters: { bus: buMap, tiers: tierMap, sites: siteMap, offers: extractUniqueOffers() } 
+            });
+        }
+    } catch (err) {
+        // Send the error back to the main console
+        self.postMessage({ type: 'ERROR', message: err.message });
     }
 };
 
