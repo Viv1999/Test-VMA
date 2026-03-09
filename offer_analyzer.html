@@ -108,13 +108,17 @@
     let timeLabels = [];
     let currentHorizon = 'weekly';
 
-    // Link to app-controller.js global state
-    function checkData() {
+    // 1. DATA PIPELINE CONNECTION
+    // This is the "bridge" to the parent Portal page
+    function connectToPipeline() {
         const state = window.parent.DashboardState || window.DashboardState;
+        
         if (state && state[currentHorizon].loaded) {
+            document.getElementById('load-text').innerText = `Injecting ${currentHorizon} data...`;
             worker.postMessage({ type: 'INIT_DATA', data: state[currentHorizon].data });
         } else {
-            setTimeout(checkData, 500); // Poll until data is ready
+            // If data isn't ready, poll every 500ms
+            setTimeout(connectToPipeline, 500);
         }
     }
 
@@ -133,13 +137,19 @@
     };
 
     function switchHorizon(val) {
+        const state = window.parent.DashboardState || window.DashboardState;
+        if (!state[val].loaded) {
+            alert(`${val.charAt(0).toUpperCase() + val.slice(1)} data is still loading...`);
+            return;
+        }
         currentHorizon = val;
         document.querySelectorAll('.h-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(`btn-${val}`).classList.add('active');
         document.getElementById('loader').style.display = 'flex';
-        checkData();
+        connectToPipeline();
     }
 
+    // 2. UI SETUP
     function setupFilters(f) {
         const buS = document.getElementById('f-bu');
         buS.innerHTML = f.bus.map(v => `<option value="${v}">${v}</option>`).join('');
@@ -170,10 +180,11 @@
         });
     }
 
+    // 3. VIZ LOGIC
     function renderChart(base, sim, key) {
         const svg = document.getElementById('chart'), w = svg.clientWidth, h = 350, m = 60;
         const getX = (i) => m + (i * (w - m * 2) / (base.length - 1 || 1));
-        const getY = (v) => (h - 80) - (v * (h - 120) / 100);
+        const getY = (v) => (h - 80) - (v * (h - 180) / 100);
         
         let html = `<line x1="${m}" y1="${h-80}" x2="${w-m}" y2="${h-80}" stroke="var(--border)" />`;
         const bPts = base.map((d,i) => `${getX(i)},${getY(d[key])}`).join(' ');
@@ -197,7 +208,7 @@
         disp.innerText = (totalDelta > 0 ? '+' : '') + totalDelta.toFixed(2) + '%';
         disp.style.color = totalDelta >= 0 ? 'var(--baseline)' : 'var(--danger)';
 
-        // Simplified Attribution View for Table
+        // Driver Analysis
         const stats = curr.offerStats;
         const drivers = Object.keys(stats).map(off => {
             const c = stats[off];
@@ -224,8 +235,8 @@
         });
     }
 
-    // Start
-    checkData();
+    // Initialize
+    connectToPipeline();
 </script>
 </body>
 </html>
