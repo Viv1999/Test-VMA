@@ -1,4 +1,4 @@
-/** worker.js - v3.0 Perfect Additive Attribution **/
+/** worker.js - v3.1 Perfect Additive Attribution **/
 const MAX_ROWS = 1000000;
 const timeCol = new Uint32Array(MAX_ROWS), buCol = new Uint8Array(MAX_ROWS), 
       tierCol = new Uint8Array(MAX_ROWS), siteCol = new Uint8Array(MAX_ROWS);
@@ -79,11 +79,8 @@ function calculate(exclOff, exclTypes, f, metricKey) {
             const type = off.split('-')[0].trim();
             const weight = v / rP.length;
 
-            if (!p.offerStats[off]) p.offerStats[off] = { n: 0, d: 0 };
-            p.offerStats[off].d += weight;
-
-            if (!p.typeStats[type]) p.typeStats[type] = { n: 0, d: 0 };
-            p.typeStats[type].d += weight;
+            if (!p.offerStats[off]) p.offerStats[off] = { n: 0 };
+            if (!p.typeStats[type]) p.typeStats[type] = { n: 0 };
 
             let success = (metricKey === 'eligRate') || 
                           (metricKey === 'offRate' && rE.includes(off)) || 
