@@ -161,41 +161,38 @@ async function loadMonthlyFiles() {
 
 async function loadAndParse(url) {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`File not found: ${url}`);
-    
     const text = await res.text();
     const rows = text.split('\n').filter(r => r.trim());
     const h = rows[0].toLowerCase().split(',');
 
-    // DYNAMIC MAPPING: This is key because your Weekly and Monthly column orders differ
+    // Match indices based on your image: week_sta, bu, tier, site, calls_handle, etc.
     const map = {
         time: h.findIndex(x => x.includes('week') || x.includes('month')),
         bu: h.indexOf('bu'),
         tier: h.indexOf('tier'),
         site: h.indexOf('site'),
-        handled: h.indexOf('calls_handled'),
+        handled: h.indexOf('calls_handle'), // Matching 'calls_handle' in image
         pres: h.indexOf('offers_present'),
         ext: h.indexOf('offers_extended'),
         acc: h.indexOf('offers_accepted'),
-        count: h.indexOf('calls')
+        count: h.indexOf('ca') // Matching 'ca' in image
     };
 
     return rows.slice(1).map(r => {
         const c = r.split(',');
         return {
-            time: c[map.time],
-            bu: c[map.bu],
-            tier: c[map.tier],
-            site: c[map.site],
+            time:    c[map.time],
+            bu:      c[map.bu],
+            tier:    c[map.tier],
+            site:    c[map.site],
             handled: parseInt(c[map.handled]) || 0,
-            pres: c[map.pres] || "",
-            ext: c[map.ext] || "",
-            acc: c[map.acc] || "",
-            count: parseInt(c[map.count]) || 0
+            pres:    c[map.pres] || "",
+            ext:     c[map.ext] || "",
+            acc:     c[map.acc] || "",
+            count:   parseInt(c[map.count]) || 0
         };
     });
 }
-
 function updateLoader(msg) {
     const el = document.getElementById('load-text');
     if(el) el.innerText = msg;

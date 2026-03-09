@@ -8,47 +8,80 @@ const presData = new Array(MAX_ROWS), extData = new Array(MAX_ROWS), accData = n
 let timeMap = [], buMap = [], tierMap = [], siteMap = [], rowCount = 0;
 
 // Inside worker.js
+// worker.js
+
 self.onmessage = (e) => {
     try {
         const { type, data } = e.data;
+
         if (type === 'INIT_DATA') {
             console.log("Worker: Starting to process " + data.length + " rows");
             
-            // RESET rowCount to avoid overflow on re-loads
-            rowCount = 0; 
+            // Reset state to prevent memory leaks or overflows
+            rowCount = 0;
+            timeMap = []; buMap = []; tierMap = []; siteMap = [];
+
+            const getIdx = (v, m) => {
+                if (v === undefined || v === null) v = "Unknown";
+                let clean = String(v).trim();
+                let i = m.indexOf(clean);
+                if (i === -1) { m.push(clean); return m.length - 1; }
+                return i;
+            };
 
             for (let i = 0; i < data.length; i++) {
                 const row = data[i];
                 if (!row) continue;
 
-                // PROTECTIVE MAPPING
-                timeCol[rowCount] = getIdx(row.time || "Unknown", timeMap);
-                buCol[rowCount] = getIdx(row.bu || "Unknown", buMap);
-                tierCol[rowCount] = getIdx(row.tier || "Unknown", tierMap);
-                siteCol[rowCount] = getIdx(row.site || "Unknown", siteMap);
+                // Safely Map Columns based on your image order
+                // Row data keys are assigned in the UI loadAndParse function
+                timeCol[rowCount] = getIdx(row.time, timeMap);
+                buCol[rowCount]   = getIdx(row.bu, buMap);
+                tierCol[rowCount] = getIdx(row.tier, tierMap);
+                siteCol[rowCount] = getIdx(row.site, siteMap);
                 
-                handledCol[rowCount] = Number(row.handled) || 0;
-                countCol[rowCount] = Number(row.count) || 0;
+                // Ensure numbers are valid
+                handledCol[rowCount] = parseInt(row.handled) || 0;
+                countCol[rowCount]   = parseInt(row.count) || 0;
                 
-                // Ensure strings exist before splitting
+                // Ensure offer strings are strings to avoid .split() errors
                 presData[rowCount] = String(row.pres || "");
-                extData[rowCount] = String(row.ext || "");
-                accData[rowCount] = String(row.acc || "");
+                extData[rowCount]  = String(row.ext || "");
+                accData[rowCount]  = String(row.acc || "");
                 
                 rowCount++;
             }
             
             console.log("Worker: Mapping Complete. RowCount: " + rowCount);
 
-            // Signal the UI to hide the loader
+            // Extract unique offers for the sidebar filter list
+            const offers = new Set();
+            for(let j=0; j<rowCount; j++) {
+                if(presData[j]) {
+                    presData[j].split('|').forEach(o => {
+                        const clean = o.trim();
+                        if(clean) offers.add(clean);
+                    });
+                }
+            }
+
+            // SIGNAL THE UI TO HIDE LOADER
             self.postMessage({ 
                 type: 'READY', 
                 timeMap: timeMap, 
-                filters: { bus: buMap, tiers: tierMap, sites: siteMap, offers: extractUniqueOffers() } 
+                filters: { 
+                    bus: buMap, 
+                    tiers: tierMap, 
+                    sites: siteMap, 
+                    offers: Array.from(offers).sort() 
+                } 
             });
         }
+        
+        // ... (Include your RUN_CALC/PROCESS logic here)
+
     } catch (err) {
-        // Send the error back to the main console
+        console.error("CRITICAL WORKER ERROR:", err);
         self.postMessage({ type: 'ERROR', message: err.message });
     }
 };
