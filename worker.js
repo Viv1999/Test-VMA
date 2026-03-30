@@ -54,52 +54,80 @@ self.onmessage = (e) => {
 };
 
 function calculate(exclOff, exclTypes, f, metricKey) {
-    const periods = timeMap.map(() => ({ hPool: new Map(), pres: 0, ext: 0, acc: 0, offerStats: {}, typeStats: {} }));
-    const buIdx = buMap.indexOf(f.bu), sIdx = new Set(f.sites.map(s => siteMap.indexOf(s))), tIdx = new Set(f.tiers.map(t => tierMap.indexOf(t)));
+    const periods = timeMap.map(() => ({ 
+        hPool: new Map(), 
+        presVol: 0, 
+        extVol: 0, 
+        accVol: 0, 
+        offerStats: {}, 
+        typeStats: {} 
+    }));
+
+    const buIdx = buMap.indexOf(f.bu);
+    const sIdx = new Set(f.sites.map(s => siteMap.indexOf(s)));
+    const tIdx = new Set(f.tiers.map(t => tierMap.indexOf(t)));
     const typeExclSet = new Set(exclTypes);
 
     for (let i = 0; i < rowCount; i++) {
+        // 1. Segment Filtering
         if (buCol[i] !== buIdx || !sIdx.has(siteCol[i]) || !tIdx.has(tierCol[i])) continue;
         
-        const p = periods[timeCol[i]], v = countCol[i];
+        const p = periods[timeCol[i]];
+        const rowVol = countCol[i]; // This is your 'calls' column
+        
+        // 2. Denominator Handling (Unique sum of calls_handled per segment)
         const poolKey = `${buCol[i]}-${tierCol[i]}-${siteCol[i]}`;
-        if (!p.hPool.has(poolKey)) p.hPool.set(poolKey, handledCol[i]);
+        if (!p.hPool.has(poolKey)) {
+            p.hPool.set(poolKey, handledCol[i]);
+        }
 
+        // 3. Exclusion Filter
         const isExcl = (o) => exclOff.includes(o) || typeExclSet.has(o.split('-')[0].trim());
-        const rP = presData[i].split('|').filter(o => o && !isExcl(o));
-        const rE = extData[i].split('|').filter(o => o && !isExcl(o));
-        const rA = accData[i].split('|').filter(o => o && !isExcl(o));
+        
+        // Check if row has at least one valid offer after exclusions
+        const hasValidP = presData[i].split('|').some(o => o && !isExcl(o));
+        const hasValidE = extData[i].split('|').some(o => o && !isExcl(o));
+        const hasValidA = accData[i].split('|').some(o => o && !isExcl(o));
 
-        if (rP.length > 0) p.pres += v;
-        if (rE.length > 0) p.ext += v;
-        if (rA.length > 0) p.acc += v;
+        // 4. Numerator Aggregation
+        if (hasValidP) p.presVol += rowVol;
+        if (hasValidE) p.extVol += rowVol;
+        if (hasValidA) p.accVol += rowVol;
 
-        rP.forEach(off => {
-            const type = off.split('-')[0].trim();
-            const weight = v / rP.length;
+        // 5. Contribution / Driver Logic (Calculated on valid offers only)
+        if (hasValidP) {
+            const validOffersInRow = presData[i].split('|').filter(o => o && !isExcl(o));
+            validOffersInRow.forEach(off => {
+                const type = off.split('-')[0].trim();
+                const weight = rowVol / validOffersInRow.length; // Spread row volume across valid offers
+                
+                if (!p.offerStats[off]) p.offerStats[off] = { n: 0 };
+                if (!p.typeStats[type]) p.typeStats[type] = { n: 0 };
 
-            if (!p.offerStats[off]) p.offerStats[off] = { n: 0 };
-            if (!p.typeStats[type]) p.typeStats[type] = { n: 0 };
-
-            let success = (metricKey === 'eligRate') || 
-                          (metricKey === 'offRate' && rE.includes(off)) || 
-                          (metricKey === 'accRate' && rA.includes(off)) || 
-                          (metricKey === 'convRate' && rE.includes(off) && rA.includes(off));
-            
-            if (success) {
-                p.offerStats[off].n += weight;
-                p.typeStats[type].n += weight;
-            }
-        });
+                // Success check based on active metric
+                let success = (metricKey === 'eligRate') || 
+                              (metricKey === 'offRate' && extData[i].includes(off)) || 
+                              (metricKey === 'accRate' && accData[i].includes(off)) || 
+                              (metricKey === 'convRate' && extData[i].includes(off) && accData[i].includes(off));
+                
+                if (success) {
+                    p.offerStats[off].n += weight;
+                    p.typeStats[type].n += weight;
+                }
+            });
+        }
     }
 
     return periods.map(p => {
         const h = Array.from(p.hPool.values()).reduce((a, b) => a + b, 0) || 1;
         return { 
-            eligRate: (p.pres/h)*100||0, offRate: (p.ext/p.pres)*100||0, 
-            accRate: (p.acc/p.pres)*100||0, convRate: (p.acc/p.ext)*100||0, 
-            pres: p.pres, ext: p.ext, h, 
-            offerStats: p.offerStats, typeStats: p.typeStats 
+            eligRate: (p.presVol / h) * 100 || 0, 
+            offRate: (p.extVol / p.presVol) * 100 || 0, 
+            accRate: (p.accVol / p.presVol) * 100 || 0, 
+            convRate: (p.accVol / p.extVol) * 100 || 0, 
+            pres: p.presVol, 
+            ext: p.extVol, 
+            h: h 
         };
     });
 }

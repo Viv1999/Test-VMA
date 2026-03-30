@@ -8,7 +8,6 @@
         :root { 
             --primary: #0f172a; 
             --accent: #3b82f6; 
-            --baseline: #10b981; 
             --bg: #f8fafc; 
             --card: #ffffff; 
             --border: #e2e8f0; 
@@ -55,7 +54,13 @@
 
         p { color: var(--muted); line-height: 1.7; margin-bottom: 30px; font-size: 0.95rem; flex-grow: 1; }
 
-        /* Beautified Horizon Picker */
+        /* Beautified Pickers */
+        .picker-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
         .horizon-picker {
             display: inline-flex;
             align-items: center;
@@ -64,7 +69,6 @@
             padding: 4px 12px;
             border-radius: 20px;
             border: 1px solid var(--border);
-            margin-bottom: 20px;
             width: fit-content;
         }
 
@@ -76,7 +80,7 @@
             letter-spacing: 0.05em;
         }
 
-        #split-horizon-toggle {
+        select {
             background: transparent;
             border: none;
             color: var(--primary);
@@ -87,8 +91,9 @@
             outline: none;
         }
 
-        #split-horizon-toggle:hover { color: var(--accent); }
+        select:hover { color: var(--accent); }
 
+        /* Buttons */
         .btn { 
             display: block; 
             width: 100%;
@@ -118,7 +123,7 @@
         }
         .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
 
-        footer { margin-top: 50px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        footer { margin-top: 50px; text-align: center; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -139,21 +144,31 @@
         <div class="section-card">
             <h2>Call Category Level</h2>
             
-            <div class="horizon-picker">
-                <span class="picker-label">Horizon:</span>
-                <select id="split-horizon-toggle" onchange="updateSplitLinks()">
-                    <option value="weekly">Weekly View</option>
-                    <option value="monthly">Monthly View</option>
-                </select>
+            <div class="picker-container">
+                <div class="horizon-picker">
+                    <span class="picker-label">Segment:</span>
+                    <select id="split-segment-toggle" onchange="updateSplitLinks()">
+                        <option value="cps">CPS</option>
+                        <option value="sbs">SBS</option>
+                    </select>
+                </div>
+
+                <div class="horizon-picker">
+                    <span class="picker-label">Horizon:</span>
+                    <select id="split-horizon-toggle" onchange="updateSplitLinks()">
+                        <option value="weekly">Weekly View</option>
+                        <option value="monthly">Monthly View</option>
+                    </select>
+                </div>
             </div>
 
             <p>Created using <strong>Metric SPLIT</strong> tool, Includes Mix-Rate Analysis tree providing high customization flexibility to investigate impact of categories on Period on Period metric change.</p>
             
             <div class="split-grid">
-                <a href="eligibility_split.html" id="link-elig" class="btn btn-outline">Eligibility%</a>
-                <a href="offer_rate_split.html" id="link-offer" class="btn btn-outline">Offer Rate%</a>
-                <a href="accept_rate_split.html" id="link-accept" class="btn btn-outline">Accept Rate%</a>
-                <a href="conversion_split.html" id="link-conv" class="btn btn-outline">Conversion%</a>
+                <a href="cps_eligibility_split_weekly.html" id="link-elig" class="btn btn-outline">Eligibility%</a>
+                <a href="cps_offer_rate_split_weekly.html" id="link-offer" class="btn btn-outline">Offer Rate%</a>
+                <a href="cps_accept_rate_split_weekly.html" id="link-accept" class="btn btn-outline">Accept Rate%</a>
+                <a href="cps_conversion_split_weekly.html" id="link-conv" class="btn btn-outline">Conversion%</a>
             </div>
         </div>
     </div>
@@ -162,20 +177,33 @@
 </div>
 
 <script>
+    /**
+     * Dynamically updates links based on Naming Convention:
+     * Segment: cps_ or sbs_
+     * Horizon: Monthly (no suffix) vs Weekly (_weekly)
+     */
     function updateSplitLinks() {
         const horizon = document.getElementById('split-horizon-toggle').value;
+        const segment = document.getElementById('split-segment-toggle').value;
+        
         const links = {
             elig: document.getElementById('link-elig'),
             offer: document.getElementById('link-offer'),
             accept: document.getElementById('link-accept'),
             conv: document.getElementById('link-conv')
         };
-        const suffix = (horizon === 'monthly') ? '_monthly.html' : '.html';
-        links.elig.href = "eligibility_split" + suffix;
-        links.offer.href = "offer_rate_split" + suffix;
-        links.accept.href = "accept_rate_split" + suffix;
-        links.conv.href = "conversion_split" + suffix;
+
+        const prefix = segment + "_";
+        const suffix = (horizon === 'weekly') ? "_weekly.html" : ".html";
+
+        links.elig.href = prefix + "eligibility_split" + suffix;
+        links.offer.href = prefix + "offer_rate_split" + suffix;
+        links.accept.href = prefix + "accept_rate_split" + suffix;
+        links.conv.href = prefix + "conversion_split" + suffix;
     }
+
+    // Run on load to ensure links match initial dropdown states
+    window.onload = updateSplitLinks;
 </script>
 </body>
 </html>
